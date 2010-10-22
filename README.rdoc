@@ -2,26 +2,106 @@
 by: Arvicco
 url: http://github.com/arvicco/amqp-events
 
+== SUMMARY:
+
+Distributed Events/RPC system using AMQP as a transport.
+
+This is still work in progress, consider this library a deep deep pre-alpha at this point...
+
 == DESCRIPTION:
 
-FIXME (describe your package)
+In order to coordinate activity of several daemons working on multiple hosts, I would like to use distributed events.
+Events here are understood as one-way messages emitted by daemons "to whom it may concern", with specific routing
+(categorization) and payload (event details, data). Other daemons may subscribe to events of specified category(ies)
+and/or sent by specified emitter. Such subscribers will receive only requested events, and nothing else.
+
+So, for example, you can make your daemon 'WorkerDaemon#1' emit 'LogEntry' event with routing like
+'log.worker_daemon.1.log_entry.error'. Somewhere else, you may have 'LogServer' daemon that subscribes to
+ALL 'LogEntry' events from ALL other deamons - once received, they are processed and logged to safe place.
+You may also have another 'Monitoring' daemon that subscribes only to errors from all (or a specific set of)
+daemons, inspects the errors received from them and reacts as appropriate. Such approach is much more clean
+and efficient than parsing log files for errors.
+
+You can further build an asynchronous RPC on top of such distributed Event system without too much sweat.
+
+AMQP seems like a natural choice for propagating such Events, Events map to AMQP messages and routing maps to
+AMQP exchange/topics structure very well.
+
+== IMPLEMENTATION:
+
+This README will double as a Design Document for the project, so here goes implementation detail...
+
+I see following layers of abstraction for this model (by Participant I mean any daemon using Event capabilities):
+* Events - module adding Event capabilities to objects
+* EventManager - used by Participant to emit Events and subscribe to external Events
+* Transport - actual wire protocol to send/receive external Events, that is a library wrapping AMQP
+* Serializer - used to dump Event content before sending over Transport and load content received from Transport
+* ServiceManager - used by Participant to expose its services and consume services by other Participants
+
+*Events* vision:
+Internal Events. Any objects can declare Events of interest, and other objects can subscribe to them
+(with a callable subscriber object, such as block, proc or method). Object can then either fire its declared Event
+manually, or tie Event to a specific method invocation (fire on method).
+When an Event fires, any object that subscribed to it receives a call to its registered subscriber with arguments
+supplied to Event#fire (or to the invoked method that this Event was tied to). This is a bit similar to Ruby's
+Observable mixin, but the difference is that multiple events may be declared by any object, not just a single type
+of event fired by changed/notify.
+External Events. Event system is extended beyond a single Ruby process with a help of EventManager. EventManager
+represents a proxy to external Events (that are a fired by other daemons). Any object can subscribe to external Events
+declared by EventManager using, again, a callable subscriber. This subscriber will receive
+
+*EventManager* encapsulates interface to external Events. It is used by Participant to:
+* emit Events (for general use or for specific <groups of> other Participants)
+* subscribe to Events (both external and internal)
+
+EventManager manages Participant’s subscriptions to external Events, and sends Events emitted by Participant
+(with appropriate Routing) through Transport.
+
+Essentially, Event is no different from “AMQP message”. It is called “Event” to emphasize its role in driving
+behavior and changing internal state of Participants. Each Event has Routing and Payload.
+
+*Routing* is in form of (root.type.categories.[emitter].severity.event_details). Participant emits Events with
+specific Routing, anyone subscribing to this routing receives this message and has to process the payload.
+A portion of routing may be “fixed” in Exchange/Queue name (exchange ‘root.events.system’ or
+‘root.data.stocks.tick.received’), another portion present as a topic, such as ‘my_host.driver.8156.info.quik.started’
+or (with emitter omitted) ‘us.nyce.goog’. Emitter identification (if present), should come first in topic portion,
+in the form of: host.participant_type.participant_id(process?uuid?)
+
+*Payload* is serialized and its internal structure is specific to the type of Event.
+Possible Event types (with severities) include:
+* Notifications (debug, info, warning)
+* Exceptions (error, critical, fatal)
+* Data (ticks, orders, etc),
+* RPC (command, return)
+...
+
+*Transport* encapsulates external messaging middleware (AMQP library). Its role is to send data to external destination
+(as defined by Routing) and deliver data received from external destination as instructed. It is used by EventManager
+to send serialized Events and subscribe to external Events. It encapsulates knowledge about exchanges and queues, and
+converts Routing requested by EventManager into actual combination of ‘exchange/queue name’ + ‘topic routing’.
+Where exactly does it get knowledge of actual exchange names, formats, etc from? Interface should be something like
+send(routing, message), subscribe(routing)...
+
+*Serializer* (Message Formatter) encapsulates transformation of actual Event/message content to/from format used for
+transportation. Serializer is used by EventManager to dump Event content before sending it over Transport and
+load content received from transport. Serializer interface includes only dump and load methods.
+
+=== Questions:
+Should Seriaizer be called by EventManager or Transport?
+Who should know what format is appropriate for a given Routing? Transport knows about physical routing
+(exchange names, types), but EventManager knows about Event types and what content goes into what message.
 
 == FEATURES/PROBLEMS:
 
-* FIXME (list of features or problems)
+This library is not mature enough for anything but experimental use...
 
 == SYNOPSIS:
 
-  FIXME (code sample of usage)
-
 == REQUIREMENTS:
-
-* FIXME (list of requirements)
 
 == INSTALL:
 
   $ sudo gem install amqp-events
-* FIXME anything else?
 
 == LICENSE:
 Copyright (c) 2010 Arvicco. See LICENSE for details.

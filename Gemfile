@@ -16,6 +16,7 @@
 #gem(gemspec.name, gemspec.version, :path => BASE_PATH)
 
 source :gemcutter
+gem 'amqp', '~>0.6.6'
 
 group :cucumber do
   gem 'cucumber'

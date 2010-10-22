@@ -1,9 +1,9 @@
-require 'amqp-events'
-require 'pathname'
-
 require 'bundler'
 Bundler.setup
 Bundler.require :test
+
+require 'amqp-events'
+require 'pathname'
 
 BASE_PATH = Pathname.new(__FILE__).dirname + '..'
 
@@ -18,6 +18,6 @@ Spec::Runner.configure do |config|
   # config.mock_with :rr
 end
 
-module AmqpEventsTest
+module AMQPEventsTest
 
 end # module AmqpEventsTest

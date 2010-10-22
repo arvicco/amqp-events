@@ -1,6 +1,6 @@
 require 'version'
 
-module AmqpEvents
+module AMQPEvents
 
   require "bundler/setup"
 #  Bundler.require :group
@@ -21,5 +21,5 @@ end  # module AmqpEvents
 
 # Require all ruby source files located under directory lib/amqp-events
 # If you need files in specific order, you should specify it here before the glob
-AmqpEvents.require_libs %W[**/*]
+AMQPEvents.require_libs %W[**/*]
 
