@@ -17,7 +17,7 @@ module AMQPEventsTest
         lc.Subscribe(@clock)
 
         #// Get the clock started
-        @clock.Run(3)
+        @clock.Run(1)
 
        messages.count {|msg| msg =~/Current Time:/}.should == 4
       messages.count {|msg| msg =~/Logging to file:/}.should == 4
@@ -39,18 +39,18 @@ module SecondChangeEvent
 
     event :SecondChange
 
-    # Set the clock running, it will raise an event for each new second added timeout for testing
+    # Set the clock running, it will raise an event for each new MILLI second!
+    # With timeout for testing
     def Run(timeout=nil)
       start = Time.now
       while !timeout || timeout > Time.now - start do
-        sleep 0.2
         time = Time.now
 
         # If the second has changed, notify the subscribers
-        SecondChange(self, time) if time.sec != @sec
+        SecondChange(self, time) if time.usec/1000 != @millisec
 
         # Update the state
-        @sec = time.sec
+        @millisec = time.usec/1000
       end
     end
   end
