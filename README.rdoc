@@ -10,6 +10,12 @@ This is still work in progress, consider this library a deep deep pre-alpha at t
 
 == DESCRIPTION:
 
+What is an event, anyway? The way I understand it, it's kind of a method in reverse: instead of you calling
+it when you please with arguments and waiting for result, you humbly ask in to call YOU when it feels like.
+And indeed, when something happens and event "fires", you (your subscriber) get(s) called with arguments.
+This way, you can be sure that you'll be notified about external happenings, without the need to constantly
+(and inefficiently) poll your objects of interest.
+
 In order to coordinate activity of several daemons working on multiple hosts, I would like to use distributed events.
 Events here are understood as one-way messages emitted by daemons "to whom it may concern", with specific routing
 (categorization) and payload (event details, data). Other daemons may subscribe to events of specified category(ies)
