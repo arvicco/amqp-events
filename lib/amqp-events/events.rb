@@ -32,9 +32,9 @@ module AMQPEvents
       #   event += method(:method_name)  # C# compatible syntax, just without useless "delegates"
       #
       def subscribe(*subscribers, &block)
-        if block and subscribers.size = 1 and not subscribers.first.respond_to? :call
+        if block and subscribers.size == 1 and not subscribers.first.respond_to? :call
           # Arguments must be subscription block and its given name
-          @subscribers[subscriber] = block
+          @subscribers[subscribers.first] = block
         else
           # Arguments must be a list of subscribers
           (subscribers + [block]).flatten.compact.each do |subscriber|
