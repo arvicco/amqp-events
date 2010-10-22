@@ -1,4 +1,4 @@
-module AMQPEvents
+module AMQP
   module Events
     class SubscriberTypeError < TypeError
     end

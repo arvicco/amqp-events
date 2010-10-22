@@ -1,11 +1,11 @@
 require 'spec_helper'
 
 class EmptyTestClass
-  include AMQPEvents::Events
+  include AMQP::Events
 end
 
 class TestClassWithEvents
-  include AMQPEvents::Events
+  include AMQP::Events
 
   event :Bar
   event :Baz
@@ -14,7 +14,7 @@ end
 shared_examples_for 'evented object' do
 end
 
-module AMQPEventsTest
+module EventsTest
   describe EmptyTestClass, ' that includes AMQPEvents::Events and is just instantiated' do
     subject { EmptyTestClass }
 
@@ -62,5 +62,5 @@ module AMQPEventsTest
       subject.events.should include :Blah
     end
   end
-end # module AMQPEventsTest
+end # module EventsTest
 

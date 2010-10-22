@@ -18,6 +18,6 @@ Spec::Runner.configure do |config|
   # config.mock_with :rr
 end
 
-module AMQPEventsTest
+module EventsTest
 
-end # module AmqpEventsTest
+end # module EventsTest

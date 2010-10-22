@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-module AMQPEventsTest
-  describe AMQPEvents::Events, ' when running Second Change Event Example' do
+module EventsTest
+  describe AMQP::Events, ' when running Second Change Event Example' do
     before { @clock = SecondChangeEvent::Clock.new }
     let(:messages) { [] }
 
@@ -37,7 +37,7 @@ module SecondChangeEvent
 #  Our subject -- it is this class that other classes will observe. This class publishes one event:
 #  SecondChange. The observers subscribe to that event.
   class Clock
-    include AMQPEvents::Events
+    include AMQP::Events
 
     event :MilliSecondChange
     event :SecondChange
