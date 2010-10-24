@@ -1,5 +1,13 @@
 module AMQP
   module Events
+    if RUBY_PLATFORM =~ /mingw|mswin|windows/ #Windows!
+      require 'uuid'
+      UUID = UUID
+    else
+      require 'em/pure_ruby'
+      UUID = EventMachine::UuidGenerator
+    end
+
     class SubscriberTypeError < TypeError
     end
 
@@ -12,6 +20,7 @@ module AMQP
     class Event
 
       attr_reader :name, :subscribers
+      alias_method :listeners, :subscribers
 
       def initialize(name)
         @name = name
@@ -22,32 +31,34 @@ module AMQP
       # method(:method_name), attached block or a custom Handler. The only requirements,
       # it should respond to a #call and accept arguments given to Event#fire.
       #
-      # Please keep in mind, if you attach a block to #subscribe without a name, you won't
-      # be able to unsubscribe it later. However, if you give #subscribe a name and attached block,
-      # you'll be able to unsubscribe using this name
+      # You can give optional name to your subscriber. If you do, you can later
+      # unsubscribe it using this name. If you do not give subscriber a name, it will
+      # be auto-generated using its #name method and uuid.
+      #
+      # You can unsubscribe your subscriber later, provided you know its name.
       #
       # :call-seq:
-      #   event.subscribe( proc{|*args| "Subscriber 1"}, method(:method_name)) {|*args| "Unnamed subscriber block" }
-      #   event.subscribe("subscription_name") {|*args| "Named subscriber block" }
+      #   event.subscribe("subscriber_name", proc{|*args| "Subscriber 1"})
+      #   event.subscribe("subscriber_name", method(:method_name))
+      #   event.subscribe(method(:method_name) # Implicit subscriber name == :method_name
+      #   event.subscribe("subscriber_name") {|*args| "Named subscriber block" }
       #   event += method(:method_name)  # C# compatible syntax, just without useless "delegates"
       #
-      def subscribe(*subscribers, &block)
-        if block and subscribers.size == 1 and not subscribers.first.respond_to? :call
-          # Arguments must be subscription block and its given name
-          @subscribers[subscribers.first] = block
-        else
-          # Arguments must be a list of subscribers
-          (subscribers + [block]).flatten.compact.each do |subscriber|
-            if subscriber.respond_to? :call
-              @subscribers[subscriber] = subscriber
-            else
-              raise Events::SubscriberTypeError.new "Handler #{subscriber.inspect} does not respond to #call"
-            end
-          end
-        end
-        self # This allows C#-like syntax : my_event -= subscriber
+      def subscribe(*args, &block)
+        subscriber = block ? block : args.pop
+        name = args.empty? ? generate_subscriber_name(subscriber) : args.first
+
+        raise SubscriberTypeError.new "Handler #{subscriber.inspect} does not respond to #call" unless subscriber.respond_to? :call
+        @subscribers[name] = subscriber
+
+        self # This allows C#-like syntax : my_event += subscriber
       end
 
+      def generate_subscriber_name(subscriber)
+        "#{subscriber.respond_to?(:name) ? subscriber.name : 'subscriber'}-#{UUID.generate}".to_sym
+      end
+
+      alias_method :listen, :subscribe
       alias_method :+, :subscribe
 
       def unsubscribe(*subscribers)
@@ -57,8 +68,8 @@ module AMQP
         self # This allows C#-like syntax : my_event -= subscriber
       end
 
-      alias_method :-, :unsubscribe
       alias_method :remove, :unsubscribe
+      alias_method :-, :unsubscribe
 
       def fire(*args)
         @subscribers.each do |key, subscriber|
@@ -68,6 +79,7 @@ module AMQP
 
       alias_method :call, :fire
 
+      # Clears all the subscribers for a given Event
       def clear
         @subscribers.clear
       end
@@ -85,14 +97,16 @@ module AMQP
     end
 
     def events
-      @events ||= self.class.instance_events.inject({}){|hash, name| hash[name]=Event.new(name); hash}
+      @events ||= self.class.instance_events.inject({}) { |hash, name| hash[name]=Event.new(name); hash }
     end
 
-    def event(*args)
-      self.class.event(*args)
+    def event(name)
+      sym_name = name.to_sym
+      self.class.event(sym_name)
+      events[sym_name] ||= Event.new(sym_name)
     end
 
-    # Once included into a class/module, gives this module .event macros for declaring events
+# Once included into a class/module, gives this module .event macros for declaring events
     def self.included(host)
 
       host.instance_exec do
@@ -133,5 +147,6 @@ module AMQP
       end
 
     end
+
   end
 end

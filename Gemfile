@@ -17,6 +17,7 @@
 
 source :gemcutter
 gem 'amqp', '~>0.6.6'
+gem 'uuid'
 
 group :cucumber do
   gem 'cucumber'
@@ -26,6 +27,6 @@ end
 
 group :test do # Group for testing code on Windows (win, win_gui)
   gem 'rspec', '~>1.3.0', require: ['spec', 'spec/autorun']
-  gem 'amqp-spec', '>=0.1.8', git: 'git://github.com/arvicco/amqp-spec.git', require: 'amqp-spec/rspec'
+  gem 'amqp-spec', '>=0.1.13', require: 'amqp-spec/rspec'
 end
 
