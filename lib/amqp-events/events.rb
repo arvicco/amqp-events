@@ -71,6 +71,8 @@ module AMQP
       alias_method :remove, :unsubscribe
       alias_method :-, :unsubscribe
 
+      # TODO: make fire async: just fire and continue, instead of waiting for all subscribers to return,
+      # as it is right now. AMQP callbacks and EM:Deferrable?
       def fire(*args)
         @subscribers.each do |key, subscriber|
           subscriber.call *args

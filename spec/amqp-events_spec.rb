@@ -11,14 +11,21 @@ class TestClassWithEvents
   event :Baz
 end
 
+shared_examples_for 'evented class' do
+  specify { should respond_to :instance_events }
+  its(:instance_events) { should be_an Array }
+end
+
 shared_examples_for 'evented object' do
+  specify { should respond_to :events }
+  its(:events) { should be_a Hash }
 end
 
 module EventsTest
   describe EmptyTestClass, ' that includes AMQPEvents::Events and is just instantiated' do
     subject { EmptyTestClass }
 
-    specify { should respond_to :instance_events }
+    it_should_behave_like 'evented class'
     its(:instance_events) { should be_empty }
 
   end
@@ -27,10 +34,7 @@ module EventsTest
     subject { EmptyTestClass.new }
 
     it_should_behave_like 'evented object'
-
-    specify { should respond_to :events }
     its(:events) { should be_empty }
-    its(:events) { should be_a Hash }
 
     context 'creating new (class-wide) Events' do
       it 'should create events on instance' do
@@ -43,7 +47,7 @@ module EventsTest
   describe TestClassWithEvents, ' (predefined) that includes AMQPEvents::Events' do
     subject { TestClassWithEvents }
 
-    specify { should respond_to :instance_events }
+    it_should_behave_like 'evented class'
     its(:instance_events) { should include :Bar }
     its(:instance_events) { should include :Baz }
 
@@ -54,11 +58,8 @@ module EventsTest
   end
 
   describe TestClassWithEvents, ' when instantiated' do
-    it_should_behave_like 'evented object'
 
-    specify { should respond_to :events }
-    its(:events) { should be_a Hash }
-    its(:events) { should_not be_empty }
+    it_should_behave_like 'evented object'
     its(:events) { should have_key :Bar }
     its(:events) { should have_key :Baz }
 
