@@ -23,7 +23,7 @@ module AMQP
       alias_method :listeners, :subscribers
 
       def initialize(name)
-        @name = name
+        @name = name.to_sym
         @subscribers = {}
       end
 
@@ -46,7 +46,7 @@ module AMQP
       #
       def subscribe(*args, &block)
         subscriber = block ? block : args.pop
-        name = args.empty? ? generate_subscriber_name(subscriber) : args.first
+        name = args.empty? ? generate_subscriber_name(subscriber) : args.first.to_sym
 
         raise HandlerError.new "Handler #{subscriber.inspect} does not respond to #call" unless subscriber.respond_to? :call
         raise HandlerError.new "Handler name #{name} already in use" if @subscribers.has_key? name
@@ -112,8 +112,9 @@ module AMQP
     end
 
     def event(name)
-      self.class.event(name)
-      events[name] ||= Event.new(name)
+      sym_name = name.to_sym
+      self.class.event(sym_name)
+      events[sym_name] ||= Event.new(sym_name)
     end
 
     # object#subscribe(:Event) is a sugar-coat for object.Event#subscribe
@@ -142,22 +143,22 @@ module AMQP
             # Calling it with arguments fires the Event
             # Such a messy interface provides some compatibility with C# events behavior
             define_method name do |*args, &block|
-              events[name] ||= Event.new(name)
+              events[sym_name] ||= Event.new(sym_name)
               if args.empty?
                 if block
-                  events[name].subscribe &block
+                  events[sym_name].subscribe &block
                 else
-                  events[name]
+                  events[sym_name]
                 end
               else
-                events[name].fire(*args)
+                events[sym_name].fire(*args)
               end
             end
 
             # Needed to support C#-like syntax : my_event -= subscriber
             define_method "#{name}=" do |event|
               if event.kind_of? Event
-                events[name] = event
+                events[name.to_sym] = event
               else
                 raise Events::SubscriberTypeError.new "Attempted assignment #{event.inspect} is not an Event"
               end
