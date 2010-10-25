@@ -4,7 +4,7 @@ module AMQP
       require 'uuid'
       UUID = UUID
     else
-      require 'em/pure_ruby'
+      require 'em/pure_ruby' unless defined? EventMachine::UuidGenerator
       UUID = EventMachine::UuidGenerator
     end
 
@@ -100,6 +100,12 @@ module AMQP
         "#{subscriber.respond_to?(:name) ? subscriber.name : 'subscriber'}-#{UUID.generate}".to_sym
       end
     end
+
+#    class ExternalEvent < Events::Event
+#      # redefines subscribe to subscribe to use @transport.subscribe and then redistribute
+#      # received call to all @subscribers... Now, Event should know about @transport too... ugly
+#      #
+#    end
 
     def events
       @events ||= self.class.instance_events.inject({}) { |hash, name| hash[name]=Event.new(name); hash }

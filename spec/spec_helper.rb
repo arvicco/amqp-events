@@ -4,6 +4,7 @@ Bundler.require :test
 
 require 'amqp-events'
 require 'pathname'
+require 'shared_examples'
 
 BASE_PATH = Pathname.new(__FILE__).dirname + '..'
 

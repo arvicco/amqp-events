@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-class EmptyTestClass
+class TestClassWithoutEvents
   include AMQP::Events
 end
 
@@ -9,16 +9,6 @@ class TestClassWithEvents
 
   event :Bar
   event :Baz
-end
-
-shared_examples_for 'evented class' do
-  specify { should respond_to :instance_events }
-  its(:instance_events) { should be_an Array }
-end
-
-shared_examples_for 'evented object' do
-  specify { should respond_to :events }
-  its(:events) { should be_a Hash }
 end
 
 def subscribers_to_be_called(num)
@@ -31,25 +21,35 @@ def subscribers_to_be_called(num)
   @counter.should == num
 end
 
+def define_subscribers
+  def self.subscriber_method(*args)
+    args.should == ["data"]
+    @counter += 1
+  end
 
+  @subscriber_proc = proc do |*args|
+    args.should == ["data"]
+    @counter += 1
+  end
+end
 module EventsTest
-  describe EmptyTestClass, ' that includes AMQPEvents::Events and is just instantiated' do
-    subject { EmptyTestClass }
+  describe TestClassWithoutEvents, ' that includes AMQPEvents::Events and is just instantiated' do
+    subject { TestClassWithoutEvents }
 
     it_should_behave_like 'evented class'
     its(:instance_events) { should be_empty }
 
   end
 
-  describe EmptyTestClass, ' when instantiated' do
-    subject { EmptyTestClass.new }
+  describe TestClassWithoutEvents, ' when instantiated' do
 
     it_should_behave_like 'evented object'
     its(:events) { should be_empty }
 
     context 'creating new (class-wide) Events' do
       it 'should create events on instance' do
-        subject.event :Blah
+        res = subject.event :Blah
+        res.should be_an AMQP::Events::Event
         subject.events.should include :Blah
       end
     end
@@ -84,6 +84,7 @@ module EventsTest
     end
 
     context "#subscribe to object's Event" do
+      before { define_subscribers }
 
       it 'allows anyone to add block subscribers/listeners (multiple syntax)' do
         subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
@@ -94,11 +95,6 @@ module EventsTest
       end
 
       it 'allows anyone to add method subscribers/listeners (multiple syntax)' do
-        def self.subscriber_method(*args)
-          args.should == ["data"]
-          @counter += 1
-        end
-
         subject.events[:Bar].subscribe(:bar1, method(:subscriber_method))
         subject.Bar.subscribe(:bar2, method(:subscriber_method))
         subject.Bar.listen(:bar3, method(:subscriber_method))
@@ -109,33 +105,26 @@ module EventsTest
       end
 
       it 'allows anyone to add proc subscribers/listeners (multiple syntax)' do
-        subscriber_proc = proc do |*args|
-          args.should == ["data"]
-          @counter += 1
-        end
-
-        subject.events[:Bar].subscribe(:bar1, subscriber_proc)
-        subject.Bar.subscribe(:bar2, subscriber_proc)
-        subject.Bar.subscribe(:bar3, &subscriber_proc)
-        subject.Bar.subscribe subscriber_proc
-        subject.Bar.subscribe &subscriber_proc
-        subject.Bar.listen subscriber_proc
-        subject.Bar += subscriber_proc
+        subject.events[:Bar].subscribe(:bar1, @subscriber_proc)
+        subject.Bar.subscribe(:bar2, @subscriber_proc)
+        subject.Bar.subscribe(:bar3, &@subscriber_proc)
+        subject.Bar.subscribe @subscriber_proc
+        subject.Bar.subscribe &@subscriber_proc
+        subject.Bar.listen @subscriber_proc
+        subject.Bar += @subscriber_proc
 
         subscribers_to_be_called 7
       end
 
       it "allows you to mix subscriber types for one Event" do
-        def self.subscriber_method(*args)
-          args.should == ["data"]
-          @counter += 1
-        end
+        subject.Bar.subscribe { |*args| args.should == ["data"]; @counter += 1 }
+        subject.Bar += method :subscriber_method
+        subject.Bar += @subscriber_proc
 
-        subscriber_proc = proc do |*args|
-          args.should == ["data"]
-          @counter += 1
-        end
+        subscribers_to_be_called 3
+      end
 
+      it "syntax-sugars object.Event#subscribe as object.subscribe(:Event)" do
         subject.Bar.subscribe { |*args| args.should == ["data"]; @counter += 1 }
         subject.Bar += method :subscriber_method
         subject.Bar += subscriber_proc
@@ -144,7 +133,6 @@ module EventsTest
       end
 
       it "raises exception if the given handler is not callable" do
-
         [:subscriber_symbol, 1, [1, 2, 3], {me: 2}].each do |args|
           expect { subject.Bar.subscribe(args) }.
                   to raise_error /Handler .* does not respond to #call/
@@ -155,36 +143,23 @@ module EventsTest
       end
 
       it "raises exception when adding handler with duplicate name" do
-        subscriber_proc = proc do |*args|
-          args.should == ["data"]
-          @counter += 1
-        end
-
         subject.Bar.listen(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
 
         expect { subject.Bar.listen(:bar1) { |*args| args.should == ["data"]; @counter += 1 } }.
                 to raise_error /Handler name bar1 already in use/
-        expect { subject.Bar.listen(:bar1, subscriber_proc) }.
+        expect { subject.Bar.listen(:bar1, @subscriber_proc) }.
                 to raise_error /Handler name bar1 already in use/
         subscribers_to_be_called 1
       end
     end #subscribe
 
     context "#unsubscribe from object's Event" do
+      before { define_subscribers }
+
       it "allows you to unsubscribe from Events by name" do
-        def self.subscriber_method(*args)
-          args.should == ["data"]
-          @counter += 1
-        end
-
-        subscriber_proc = proc do |*args|
-          args.should == ["data"]
-          @counter += 1
-        end
-
         subject.Bar.subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
         subject.Bar.subscribe(:bar2, method(:subscriber_method))
-        subject.Bar.subscribe(:bar3, subscriber_proc)
+        subject.Bar.subscribe(:bar3, @subscriber_proc)
 
         subject.Bar.unsubscribe(:bar1)
         subject.Bar.unsubscribe(:bar2)
@@ -194,14 +169,9 @@ module EventsTest
       end
 
       it "raises exception if the name is unknown or wrong" do
-        subscriber_proc = proc do |*args|
-          args.should == ["data"]
-          @counter += 1
-        end
+        subject.Bar.subscribe(@subscriber_proc)
 
-        subject.Bar.subscribe(subscriber_proc)
-
-        expect { subject.Bar.unsubscribe(subscriber_proc) }.
+        expect { subject.Bar.unsubscribe(@subscriber_proc) }.
                 to raise_error /Unable to unsubscribe handler/
         expect { subject.Bar.unsubscribe('I-dont-know') }.
                 to raise_error /Unable to unsubscribe handler I-dont-know/
