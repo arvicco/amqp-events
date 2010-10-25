@@ -125,11 +125,18 @@ module EventsTest
       end
 
       it "syntax-sugars object.Event#subscribe as object.subscribe(:Event)" do
-        subject.Bar.subscribe { |*args| args.should == ["data"]; @counter += 1 }
-        subject.Bar += method :subscriber_method
-        subject.Bar += subscriber_proc
+        subject.subscribe(:Bar) { |*args| args.should == ["data"]; @counter += 1 }
+        subject.subscribe(:Bar, :bar1, @subscriber_proc)
+        subject.subscribe(:Bar, :bar2, @subscriber_proc)
+        subject.subscribe(:Bar, :bar3, &@subscriber_proc)
+        subject.subscribe(:Bar,  @subscriber_proc
+        subject.subscribe(:Bar, &@subscriber_proc
+        subject.listen :Bar, @subscriber_proc
+        subject.subscribe(:Bar, :bar4, method(:subscriber_method))
+        subject.subscribe(:Bar, :bar5, method(:subscriber_method))
+        subject.listen(:Bar, :bar6, method(:subscriber_method))
 
-        subscribers_to_be_called 3
+        subscribers_to_be_called 10
       end
 
       it "raises exception if the given handler is not callable" do
@@ -138,6 +145,7 @@ module EventsTest
                   to raise_error /Handler .* does not respond to #call/
           expect { subject.Bar.subscribe(:good_name, args) }.
                   to raise_error /Handler .* does not respond to #call/
+
           subscribers_to_be_called 0
         end
       end
@@ -149,6 +157,7 @@ module EventsTest
                 to raise_error /Handler name bar1 already in use/
         expect { subject.Bar.listen(:bar1, @subscriber_proc) }.
                 to raise_error /Handler name bar1 already in use/
+
         subscribers_to_be_called 1
       end
     end #subscribe
