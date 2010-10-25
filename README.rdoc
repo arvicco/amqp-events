@@ -93,6 +93,8 @@ transportation. Serializer is used by EventManager to dump Event content before 
 load content received from transport. Serializer interface includes only dump and load methods.
 
 === Questions:
+Should Event#fire be sync or async? That is, should we wait for all subscribers to return after calling #fire?
+If it is async, something like "event queue" should exist...
 Should Seriaizer be called by EventManager or Transport?
 Who should know what format is appropriate for a given Routing? Transport knows about physical routing
 (exchange names, types), but EventManager knows about Event types and what content goes into what message.

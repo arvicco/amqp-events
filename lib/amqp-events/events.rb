@@ -8,7 +8,7 @@ module AMQP
       UUID = EventMachine::UuidGenerator
     end
 
-    class SubscriberTypeError < TypeError
+    class HandlerError < TypeError
     end
 
     # TODO: Mutexes to synchronize @subscribers update ?
@@ -48,23 +48,21 @@ module AMQP
         subscriber = block ? block : args.pop
         name = args.empty? ? generate_subscriber_name(subscriber) : args.first
 
-        raise SubscriberTypeError.new "Handler #{subscriber.inspect} does not respond to #call" unless subscriber.respond_to? :call
+        raise HandlerError.new "Handler #{subscriber.inspect} does not respond to #call" unless subscriber.respond_to? :call
+        raise HandlerError.new "Handler name #{name} already in use" if @subscribers.has_key? name
         @subscribers[name] = subscriber
 
         self # This allows C#-like syntax : my_event += subscriber
       end
 
-      def generate_subscriber_name(subscriber)
-        "#{subscriber.respond_to?(:name) ? subscriber.name : 'subscriber'}-#{UUID.generate}".to_sym
-      end
-
       alias_method :listen, :subscribe
       alias_method :+, :subscribe
 
-      def unsubscribe(*subscribers)
-        (subscribers).flatten.compact.each do |subscriber|
-          @subscribers.delete(subscriber) if @subscribers[subscriber]
-        end
+      # Unsubscribe existing subscriber by name
+      def unsubscribe(name)
+        raise HandlerError.new "Unable to unsubscribe handler #{name}" unless @subscribers.has_key? name
+        @subscribers.delete(name)
+
         self # This allows C#-like syntax : my_event -= subscriber
       end
 
@@ -95,6 +93,11 @@ module AMQP
           else
             false
         end
+      end
+
+      private
+      def generate_subscriber_name(subscriber)
+        "#{subscriber.respond_to?(:name) ? subscriber.name : 'subscriber'}-#{UUID.generate}".to_sym
       end
     end
 
