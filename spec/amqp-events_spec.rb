@@ -84,6 +84,7 @@ module EventsTest
 
     context "subscribing to object's Event" do
       before { @bar_counter = 0 }
+
       it 'allows anyone to add block subscribers/listeners (multiple syntax)' do
         subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @bar_counter += 1 }
         subject.Bar.subscribe(:bar2) { |*args| args.should == ["data"]; @bar_counter += 1 }
@@ -94,11 +95,9 @@ module EventsTest
 
         subject.Bar.fire "data" # fire Event, sending "data" to subscribers
         @bar_counter.should == 3
-
       end
 
       it 'allows anyone to add method subscribers/listeners (multiple syntax)' do
-
         def self.bar_count(*args)
           args.should == ["data"]
           @bar_counter += 1
@@ -115,6 +114,27 @@ module EventsTest
 
         subject.Bar.fire "data" # fire Event, sending "data" to subscribers
         @bar_counter.should == 5
+      end
+
+      it 'allows anyone to add proc subscribers/listeners (multiple syntax)' do
+        bar_count = proc do |*args|
+          args.should == ["data"]
+          @bar_counter += 1
+        end
+
+        subject.events[:Bar].subscribe(:bar1, bar_count)
+        subject.Bar.subscribe(:bar2, bar_count)
+        subject.Bar.subscribe(:bar3, &bar_count)
+        subject.Bar.subscribe bar_count
+        subject.Bar.subscribe &bar_count
+        subject.Bar.listen bar_count
+        subject.Bar += bar_count
+
+        subject.Bar.subscribers.should have(7).subscribers
+        subject.Bar.listeners.should have(7).listeners
+
+        subject.Bar.fire "data" # fire Event, sending "data" to subscribers
+        @bar_counter.should == 7
       end
 
       it "allows you t mix subscribers"
