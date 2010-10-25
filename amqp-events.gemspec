@@ -6,9 +6,9 @@ $:.unshift lib unless $:.include?(lib)
 
 Gem::Specification.new do |gem|
   gem.name        = "amqp-events"
-  gem.version     = File.open('VERSION').read.strip # = ::AmqpEvents::VERSION # - conflicts with Bundler
-  gem.summary     = "FIXME: New project amqp-events"
-  gem.description = "FIXME: New project amqp-events"
+  gem.version     = File.open('VERSION').read.strip
+  gem.summary     = "Distributed Events/RPC system using AMQP as a transport."
+  gem.description = "Distributed Events/RPC system using AMQP as a transport (pre-alpha)"
   gem.authors     = ["arvicco"]
   gem.email       = "arvitallian@gmail.com"
   gem.homepage    = "http://github.com/arvicco/amqp-events"
