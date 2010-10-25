@@ -31,14 +31,21 @@ module AMQP
       #   event.subscribe("subscriber_name") {|*args| "Named subscriber block" }
       #   event += method(:method_name)  # C# compatible syntax, just without useless "delegates"
       #
-      def subscribe(*args, &block)
-        opts = args.last kind_of?(Hash) ? args.pop : {}
-        subscriber = block ? block : args.pop
+      def subscribe(event, *args, &block)
+        opts = args.last.kind_of?(Hash) ? args.pop : {}
 
         if opts[:routing]
-
+          defined_event = super event, *args, &block
+          @transport.subscribe(opts[:routing]) do |routing, data| defined_event.fire(routing, data) end
+          defined_event
+          # Clearing @transport subscriptions if all event listeners unsubscribed?
+          # Maybe I still need ExternalEvents?
+          # this looks like EventManager is trying too hard to help Event do its job -
+          # setting subscriber blocks and such...
+          # Maybe I should pass through to Event for it to do its job?
+          # This way, both external and internal Events should be treated as equals by EventManager
         else
-          super *args, &block
+          super event, *args, &block
         end
       end
 
