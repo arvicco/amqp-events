@@ -31,22 +31,19 @@ module AMQP
       #   event.subscribe("subscriber_name") {|*args| "Named subscriber block" }
       #   event += method(:method_name)  # C# compatible syntax, just without useless "delegates"
       #
-#      def subscribe(*args, &block)
-#        subscriber = block ? block : args.pop
-#        name = args.empty? ? generate_subscriber_name(subscriber) : args.first
-#
-#        raise HandlerError.new "Handler #{subscriber.inspect} does not respond to #call" unless subscriber.respond_to? :call
-#        raise HandlerError.new "Handler name #{name} already in use" if @subscribers.has_key? name
-#        @subscribers[name] = subscriber
-#
-#        self # This allows C#-like syntax : my_event += subscriber
-#      end
-#
-#      alias_method :listen, :subscribe
-#
-#      def subscribe(routing='#', &block
-#
-#      end
+      def subscribe(*args, &block)
+        opts = args.last kind_of?(Hash) ? args.pop : {}
+        subscriber = block ? block : args.pop
+
+        if opts[:routing]
+
+        else
+          super *args, &block
+        end
+      end
+
+      alias_method :listen, :subscribe
+
     end
   end
 end
