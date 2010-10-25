@@ -66,6 +66,13 @@ module EventsTest
       subject.event :Foo
       subject.instance_events.should include :Foo
     end
+
+    it 'should not redefine already defined events' do
+      events_size = subject.instance_events.size
+      subject.event :Bar
+      subject.instance_events.should include :Bar
+      subject.instance_events.size.should == events_size
+    end
   end
 
   describe TestClassWithEvents, ' when instantiated' do
@@ -129,8 +136,8 @@ module EventsTest
         subject.subscribe(:Bar, :bar1, @subscriber_proc)
         subject.subscribe(:Bar, :bar2, @subscriber_proc)
         subject.subscribe(:Bar, :bar3, &@subscriber_proc)
-        subject.subscribe(:Bar,  @subscriber_proc
-        subject.subscribe(:Bar, &@subscriber_proc
+        subject.subscribe :Bar,  @subscriber_proc
+        subject.subscribe :Bar, &@subscriber_proc
         subject.listen :Bar, @subscriber_proc
         subject.subscribe(:Bar, :bar4, method(:subscriber_method))
         subject.subscribe(:Bar, :bar5, method(:subscriber_method))

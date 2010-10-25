@@ -112,10 +112,16 @@ module AMQP
     end
 
     def event(name)
-      sym_name = name.to_sym
-      self.class.event(sym_name)
-      events[sym_name] ||= Event.new(sym_name)
+      self.class.event(name)
+      events[name] ||= Event.new(name)
     end
+
+    # object#subscribe(:Event) is a sugar-coat for object.Event#subscribe
+    def subscribe(event, *args, &block)
+      event(event).subscribe(*args, &block)
+    end
+
+    alias_method :listen, :subscribe
 
 # Once included into a class/module, gives this module .event macros for declaring events
     def self.included(host)
@@ -126,32 +132,35 @@ module AMQP
         end
 
         def event (name)
+          sym_name = name.to_sym
 
-          instance_events << name.to_sym
-          # Defines instance method that has the same name as the Event being declared.
-          # Calling it without arguments returns Event object itself
-          # Calling it with block adds unnamed subscriber for Event
-          # Calling it with arguments fires the Event
-          # Such a messy interface provides some compatibility with C# events behavior
-          define_method name do |*args, &block|
-            events[name] ||= Event.new(name)
-            if args.empty?
-              if block
-                events[name].subscribe &block
+          unless instance_events.include? sym_name
+            instance_events << sym_name
+            # Defines instance method that has the same name as the Event being declared.
+            # Calling it without arguments returns Event object itself
+            # Calling it with block adds unnamed subscriber for Event
+            # Calling it with arguments fires the Event
+            # Such a messy interface provides some compatibility with C# events behavior
+            define_method name do |*args, &block|
+              events[name] ||= Event.new(name)
+              if args.empty?
+                if block
+                  events[name].subscribe &block
+                else
+                  events[name]
+                end
               else
-                events[name]
+                events[name].fire(*args)
               end
-            else
-              events[name].fire(*args)
             end
-          end
 
-          # Needed to support C#-like syntax : my_event -= subscriber
-          define_method "#{name}=" do |event|
-            if event.kind_of? Event
-              events[name] = event
-            else
-              raise Events::SubscriberTypeError.new "Attempted assignment #{event.inspect} is not an Event"
+            # Needed to support C#-like syntax : my_event -= subscriber
+            define_method "#{name}=" do |event|
+              if event.kind_of? Event
+                events[name] = event
+              else
+                raise Events::SubscriberTypeError.new "Attempted assignment #{event.inspect} is not an Event"
+              end
             end
           end
         end

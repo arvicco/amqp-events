@@ -25,7 +25,7 @@ describe AMQP::Events::EventManager, " when initialized" do
   it "should allow objects to subscribe for external Events" do
 
     event = subject.subscribe('#.log.#'){|key, data| p key, data}
-    event.should be_an Event
+    event.should be_an AMQP::Events::Event
 
 
   end
