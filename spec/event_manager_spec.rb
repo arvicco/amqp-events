@@ -26,6 +26,7 @@ describe AMQP::Events::EventManager, " when initialized" do
 
     event = subject.subscribe('#.log.#'){|key, data| p key, data}
     event.should be_an AMQP::Events::Event
+    p object.events
 
 
   end
