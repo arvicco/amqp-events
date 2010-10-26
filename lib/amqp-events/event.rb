@@ -9,6 +9,10 @@ module AMQP
     # http://github.com/matsadler/rb-event-emitter/blob/master/lib/events.rb
     class Event
 
+      class << self
+        private :new
+      end
+
       attr_reader :name, :subscribers
       alias_method :listeners, :subscribers
 
