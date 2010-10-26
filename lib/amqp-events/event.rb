@@ -16,15 +16,8 @@ module AMQP
         protected :new
 
         # Creates Event of appropriate subclass, depending on arguments
-        def create *args, &block
-          case args.size
-            when 2
-              # Plain vanilla Event
-              Event.new *args, &block
-            when 3
-              # External Event (with Routing)
-              ExternalEvent.new *args, &block
-          end
+        def create host, name, opts, &block
+          opts.empty? ? Event.new(host, name, &block ) : ExternalEvent.new host, name, opts, &block
         end
       end
 

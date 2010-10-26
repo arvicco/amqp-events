@@ -8,13 +8,16 @@ module AMQP
 #    end
 
     def events
-      @events ||= self.class.instance_events.inject({}) { |hash, name| hash[name]=Event.create(self, name); hash }
+      @events ||= self.class.instance_events.inject({}) do |events, (name, opts)|
+        events[name]=Event.create(self, name, opts)
+        events
+      end
     end
 
-    def event(name)
+    def event(name, opts = {})
       sym_name = name.to_sym
-      self.class.event(sym_name)
-      events[sym_name] ||= Event.create(self, sym_name)
+      self.class.event(sym_name, opts)
+      events[sym_name] ||= Event.create(self, sym_name, opts)
     end
 
     # object#subscribe(:Event) is a sugar-coat for object.Event#subscribe
@@ -36,14 +39,14 @@ module AMQP
 
       host.instance_exec do
         def instance_events
-          @instance_events ||= []
+          @instance_events ||= {}
         end
 
-        def event(name)
+        def event(name, opts = {})
           sym_name = name.to_sym
 
-          unless instance_events.include? sym_name
-            instance_events << sym_name
+          unless instance_events.has_key? sym_name
+            instance_events[sym_name] = opts
 
             # Defines instance method that has the same name as the Event being declared.
             # Calling it without arguments returns Event object itself
@@ -51,7 +54,7 @@ module AMQP
             # Calling it with arguments fires the Event
             # Such a messy interface provides some compatibility with C# events behavior
             define_method name do |*args, &block|
-              events[sym_name] ||= Event.create(self, sym_name)
+              events[sym_name] ||= Event.create(self, sym_name, opts)
               if args.empty?
                 if block
                   events[sym_name].subscribe &block
@@ -65,7 +68,7 @@ module AMQP
 
             # Needed to support C#-like syntax : my_event -= subscriber
             define_method "#{name}=" do |event|
-              if event.kind_of?( Event) && event.name == name.to_sym
+              if event.kind_of?(Event) && event.name == name.to_sym
                 events[name.to_sym] = event
               else
                 raise EventError.new "Wrong assignment of #{event.inspect} to #{events[name.to_sym].inspect}"
