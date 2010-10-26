@@ -27,16 +27,12 @@ describe AMQP::Events::EventManager, " when initialized" do
     event = subject.subscribe(:Burple){|key, data| p key, data}
     event.should be_an AMQP::Events::Event
     @transport.should_not_receive :subscribe
-    p subject.events
-    p subject.class.instance_events
-
-
   end
 
   it "should allow objects to subscribe for external Events through Transport" do
     @transport.should_receive :subscribe
     event = subject.subscribe(:LogEvent, routing: '#.log.#'){|key, data| p key, data}
-    event.should be_an AMQP::Events::Event
+    event.should be_an AMQP::Events::ExternalEvent
     p subject.events
     p subject.class.instance_events
   end

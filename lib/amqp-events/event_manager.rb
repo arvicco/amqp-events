@@ -14,6 +14,8 @@ module AMQP
         @transport = transport
       end
 
+
+
       # You can subscribe anything callable to the event, such as lambda/proc,
       # method(:method_name), attached block or a custom Handler. The only requirements,
       # it should respond to a #call and accept arguments given to Event#fire.

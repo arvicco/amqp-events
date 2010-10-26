@@ -11,7 +11,7 @@ class TestClassWithEvents
   event :Baz
 end
 
-describe TestClassWithoutEvents, ' that includes AMQPEvents::Events and is just instantiated' do
+describe TestClassWithoutEvents, ' that includes AMQPEvents::Events' do
   subject { TestClassWithoutEvents }
 
   its(:instance_events) { should be_empty }

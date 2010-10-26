@@ -1,6 +1,9 @@
 module AMQP
   module Events
 
+    # Represent Event that can be subscribed to (by subscribers/observers)
+    # All subscribed observers will be called when this Event 'fires'.
+    #
     # TODO: Mutexes to synchronize @subscribers update/event fire ?
     # http://github.com/snuxoll/ruby-event/blob/master/lib/ruby-event/event.rb
     # TODO: Meta-methods that allow Events to fire on method invocations:
@@ -10,17 +13,26 @@ module AMQP
     class Event
 
       class << self
-        private :new
+        protected :new
 
+        # Creates Event of appropriate subclass, depending on arguments
         def create *args, &block
-          new *args, &block
+          case args.size
+            when 2
+              # Plain vanilla Event
+              Event.new *args, &block
+            when 3
+              # External Event (with Transport)
+              ExternalEvent.new *args, &block
+          end
         end
       end
 
-      attr_reader :name, :subscribers
+      attr_reader :host, :name, :subscribers
       alias_method :listeners, :subscribers
 
-      def initialize(name)
+      def initialize(host, name)
+        @host = host
         @name = name.to_sym
         @subscribers = {}
       end
@@ -95,6 +107,22 @@ module AMQP
       def generate_subscriber_name(subscriber)
         "#{subscriber.respond_to?(:name) ? subscriber.name : 'subscriber'}-#{UUID.generate}".to_sym
       end
+    end
+
+
+    # Represent external Event that can be subscribed to (by subscribers/observers).
+    # External means, it happens outside of this Ruby process, and is delivered through Transport.
+    # When Transport informs ExternalEvent that it happened (someplace else),
+    # ExternalEvent 'fires' and makes sure that all subscribers are called.
+    #
+    class ExternalEvent < Event
+      attr_reader :transport
+
+      def initialize(host, name, transport)
+        @transport = transport
+        super host, name
+      end
+
     end
   end
 end
