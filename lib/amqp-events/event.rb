@@ -16,8 +16,8 @@ module AMQP
         protected :new
 
         # Creates Event of appropriate subclass, depending on arguments
-        def create host, name, opts, &block
-          opts.empty? ? Event.new(host, name, &block ) : ExternalEvent.new host, name, opts, &block
+        def create host, name, opts={}, &block
+          opts.empty? ? Event.new(host, name, &block ) : ExternalEvent.new(host, name, opts, &block)
         end
       end
 
@@ -108,30 +108,32 @@ module AMQP
     # When Transport informs ExternalEvent that it happened (someplace else),
     # ExternalEvent 'fires' and makes sure that all subscribers are called.
     #
+    # Any evented object (host) that defines ExternalEvent should provide it with transport either
+    # explicitly (via option :transport) or expose its own #transport.
+    #
     class ExternalEvent < Event
       attr_reader :transport
 
-      def initialize(host, name, routing)
-        @routing = routing
+      def initialize(host, name, opts)
+        @routing = opts[:routing]
+        @transport = opts[:transport] || host.transport rescue nil
+        raise EventError.new "Unable to create ExternalEvent #{name.inspect} without routing" unless @routing
+        raise EventError.new "Unable to create ExternalEvent #{name.inspect} without transport" unless @transport
         super host, name
       end
 
       # Subscribe to external event... Uses @host's transport for actual subscription
       def subscribe(*args, &block)
         super *args, &block
-        transport.subscribe(@routing) {|routing, data| fire(routing, data) } if @subscribers.size == 1
+        @transport.subscribe(@routing) {|routing, data| fire(routing, data) } if @subscribers.size == 1
         self # This allows C#-like syntax : my_event += subscriber
       end
 
       # Unsubscribe from external event... Cancels @host's transport subscription if no subscribers left
       def unsubscribe(name)
         super name
-        transport.unsubscribe(@routing) if @subscribers.empty?
+        @transport.unsubscribe(@routing) if @subscribers.empty?
         self # This allows C#-like syntax : my_event -= subscriber_name
-      end
-
-      def transport
-        @host.transport
       end
     end
   end

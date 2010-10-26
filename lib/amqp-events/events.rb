@@ -1,15 +1,9 @@
 module AMQP
   module Events
 
-#    class ExternalEvent < Events::Event
-#      # redefines subscribe to subscribe to use @transport.subscribe and then redistribute
-#      # received call to all @subscribers... Now, Event should know about @transport too... ugly
-#      #
-#    end
-
     def events
       @events ||= self.class.instance_events.inject({}) do |events, (name, opts)|
-        events[name]=Event.create(self, name, opts)
+        events[name] = Event.create(self, name, opts)
         events
       end
     end
@@ -45,7 +39,9 @@ module AMQP
         def event(name, opts = {})
           sym_name = name.to_sym
 
-          unless instance_events.has_key? sym_name
+          if instance_events.has_key? sym_name
+            raise EventError.new "Unable to redefine Event #{name} with options #{opts.inspect}" if instance_events[sym_name] != opts
+          else
             instance_events[sym_name] = opts
 
             # Defines instance method that has the same name as the Event being declared.
