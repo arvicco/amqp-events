@@ -11,6 +11,10 @@ module AMQP
 
       class << self
         private :new
+
+        def create *args, &block
+          new *args, &block
+        end
       end
 
       attr_reader :name, :subscribers

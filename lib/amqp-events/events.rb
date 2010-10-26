@@ -8,13 +8,13 @@ module AMQP
 #    end
 
     def events
-      @events ||= self.class.instance_events.inject({}) { |hash, name| hash[name]=Event.new(name); hash }
+      @events ||= self.class.instance_events.inject({}) { |hash, name| hash[name]=Event.create(name); hash }
     end
 
     def event(name)
       sym_name = name.to_sym
       self.class.event(sym_name)
-      events[sym_name] ||= Event.new(sym_name)
+      events[sym_name] ||= Event.create(sym_name)
     end
 
     # object#subscribe(:Event) is a sugar-coat for object.Event#subscribe
@@ -50,7 +50,7 @@ module AMQP
             # Calling it with arguments fires the Event
             # Such a messy interface provides some compatibility with C# events behavior
             define_method name do |*args, &block|
-              events[sym_name] ||= Event.new(sym_name)
+              events[sym_name] ||= Event.create(sym_name)
               if args.empty?
                 if block
                   events[sym_name].subscribe &block
