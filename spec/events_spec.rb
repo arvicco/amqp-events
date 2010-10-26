@@ -11,13 +11,13 @@ class TestClassWithEvents
   event :Baz
 end
 
-def subscribers_to_be_called(num)
+def subscribers_to_be_called(num, event = subject)
   @counter = 0
 
-  subject.Bar.subscribers.should have(num).subscribers
-  subject.Bar.listeners.should have(num).listeners
+  event.subscribers.should have(num).subscribers
+  event.listeners.should have(num).listeners
 
-  subject.Bar.fire "data" # fire Event, sending "data" to subscribers
+  event.fire "data" # fire Event, sending "data" to subscribers
   @counter.should == num
 end
 
@@ -32,7 +32,16 @@ def define_subscribers
     @counter += 1
   end
 end
+
 module EventsTest
+  describe AMQP::Events::Event do
+    subject { AMQP::Events::Event.new 'TestEvent' }
+
+    its(:name) { should == :TestEvent }
+    its(:subscribers) { should be_empty }
+
+    it_should_behave_like 'event'
+  end
 
   describe TestClassWithoutEvents, ' that includes AMQPEvents::Events and is just instantiated' do
     subject { TestClassWithoutEvents }
@@ -51,7 +60,7 @@ module EventsTest
         res = subject.event :Blurp
         res.should be_an AMQP::Events::Event
         subject.events.should include :Blurp
-    # object effectively defines new Event for all similar instances... Should it be allowed?
+        # object effectively defines new Event for all similar instances... Should it be allowed?
         subject.class.instance_events.should include :Blurp
       end
 
@@ -65,6 +74,14 @@ module EventsTest
       end
     end
 
+    context "when Event is defined for this object, it" do
+      before do
+        @object = TestClassWithoutEvents.new
+        @object.event :Bar
+      end
+      subject { @object.Bar }
+      it_should_behave_like 'event'
+    end
   end
 
   describe TestClassWithEvents, ' (predefined) that includes AMQPEvents::Events' do
@@ -114,6 +131,13 @@ module EventsTest
       end
     end
 
+    context "its pre-defined Events" do
+      before do
+        @object = TestClassWithEvents.new
+      end
+      subject { @object.Bar }
+      it_should_behave_like 'event'
+    end
   end # TestClassWithEvents, ' when instantiated'
 end # module EventsTest
 

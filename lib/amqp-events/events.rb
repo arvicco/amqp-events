@@ -55,9 +55,6 @@ module AMQP
         self # This allows C#-like syntax : my_event += subscriber
       end
 
-      alias_method :listen, :subscribe
-      alias_method :+, :subscribe
-
       # Unsubscribe existing subscriber by name
       def unsubscribe(name)
         raise HandlerError.new "Unable to unsubscribe handler #{name}" unless @subscribers.has_key? name
@@ -65,9 +62,6 @@ module AMQP
 
         self # This allows C#-like syntax : my_event -= subscriber
       end
-
-      alias_method :remove, :unsubscribe
-      alias_method :-, :unsubscribe
 
       # TODO: make fire async: just fire and continue, instead of waiting for all subscribers to return,
       # as it is right now. AMQP callbacks and EM:Deferrable?
@@ -77,6 +71,10 @@ module AMQP
         end
       end
 
+      alias_method :listen, :subscribe
+      alias_method :+, :subscribe
+      alias_method :remove, :unsubscribe
+      alias_method :-, :unsubscribe
       alias_method :call, :fire
 
       # Clears all the subscribers for a given Event
@@ -122,7 +120,14 @@ module AMQP
       event(event).subscribe(*args, &block)
     end
 
+    # object#unsubscribe(:Event) is a sugar-coat for object.Event#unsubscribe
+    def unsubscribe(event, *args, &block)
+      raise HandlerError.new "Unable to unsubscribe, there is no event #{event}" unless events[event.to_sym]
+      events[event.to_sym].unsubscribe(*args, &block)
+    end
+
     alias_method :listen, :subscribe
+    alias_method :remove, :unsubscribe
 
 # Once included into a class/module, gives this module .event macros for declaring events
     def self.included(host)

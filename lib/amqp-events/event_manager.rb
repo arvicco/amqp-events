@@ -38,7 +38,7 @@ module AMQP
           defined_event = super event, *args, &block
           @transport.subscribe(opts[:routing]) do |routing, data| defined_event.fire(routing, data) end
           defined_event
-          # Clearing @transport subscriptions if all event listeners unsubscribed?
+          # Clearing @transport subscriptions if all the event listeners unsubscribed?
           # Maybe I still need ExternalEvents?
           # this looks like EventManager is trying too hard to help Event do its job -
           # setting subscriber blocks and such...
