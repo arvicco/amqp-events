@@ -30,6 +30,13 @@ shared_examples_for 'evented object' do
   specify { should respond_to :events }
   its(:events) { should be_a Hash }
 
+  it 'it`s events should know about their name and host' do
+    subject.events.each do |name, event|
+      event.name.should == name
+      event.host.should == subject
+    end
+  end
+
   context "#subscribe to object's Event" do
     before do
       define_subscribers

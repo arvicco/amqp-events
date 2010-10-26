@@ -82,12 +82,6 @@ describe TestClassWithEvents, ' when instantiated' do
   its(:events) { should have_key :Bar }
   its(:events) { should have_key :Baz }
 
-  it 'it`s events should know about their host' do
-    events.each do |name, event|
-      event.host.should == subject
-    end
-  end
-
   context 'creating new (class-wide) Events' do
     it 'should not redefine already defined events' do
       events_size = subject.events.size
