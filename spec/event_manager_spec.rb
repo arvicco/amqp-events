@@ -7,7 +7,7 @@ describe AMQP::Events::EventManager, " as class" do
 
 #  its(:instance_events) { should include :ExternalEventReceived}
 
-  it "should do something" do
+  it "should do something else" do
     pending
 
     #To change this template use File | Settings | File Templates.

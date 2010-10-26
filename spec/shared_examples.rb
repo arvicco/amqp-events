@@ -1,3 +1,25 @@
+def subscribers_to_be_called(num, event = subject)
+  @counter = 0
+
+  event.subscribers.should have(num).subscribers
+  event.listeners.should have(num).listeners
+
+  event.fire "data" # fire Event, sending "data" to subscribers
+  @counter.should == num
+end
+
+def define_subscribers
+  def self.subscriber_method(*args)
+    args.should == ["data"]
+    @counter += 1
+  end
+
+  @subscriber_proc = proc do |*args|
+    args.should == ["data"]
+    @counter += 1
+  end
+end
+
 shared_examples_for 'evented class' do
   specify { should respond_to :instance_events }
   its(:instance_events) { should be_an Array }

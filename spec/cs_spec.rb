@@ -1,6 +1,5 @@
-#require 'spec_helper'
-require_relative '../lib/amqp-events/events'
-module EventsTest
+require 'spec_helper'
+
   describe AMQP::Events, ' when running Second Change Event Example' do
     before { @clock = SecondChangeEvent::Clock.new }
     let(:messages) { [] }
@@ -26,7 +25,6 @@ module EventsTest
     end
 
   end
-end # module AMQPEventsTest
 
 # This is a reproduction of "The Second Change Event Example" from:
 # http://www.akadia.com/services/dotnet_delegates_and_events.html
