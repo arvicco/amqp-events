@@ -91,11 +91,30 @@ describe TestClassWithEvents, ' when instantiated' do
       subject.events.size.should == events_size
 
       subject.event 'Baz'
-      subject.events.size
       subject.events.should include :Baz
       subject.events.should_not include 'Baz'
       subject.class.instance_events.should include :Baz
       subject.class.instance_events.should_not include 'Baz'
+      subject.events.size.should == events_size
+    end
+  end
+
+  context 'assigning into pre-defined Events (for C# compatibility)' do
+    it 'allows assignment of pre-defined Event to self (+=/-=)' do
+      events_size = subject.events.size
+      subject.Baz = subject.Baz
+      subject.Baz = subject.events[:Baz]
+
+      subject.class.instance_events.should include :Baz
+      subject.events.size.should == events_size
+    end
+
+    it 'raises error if you try to assign anything else to Event' do
+      events_size = subject.events.size
+      [1, 'event', :Baz, subject.Bar, proc {}].each do |rvalue|
+        expect { subject.Baz = rvalue }.to raise_error AMQP::Events::EventError, /Wrong assignment/
+      end
+      subject.class.instance_events.should include :Baz
       subject.events.size.should == events_size
     end
   end

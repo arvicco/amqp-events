@@ -29,6 +29,8 @@ module AMQP
     class HandlerError < TypeError
     end
 
+    class EventError < TypeError
+    end
   end
 end
 

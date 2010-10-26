@@ -123,34 +123,22 @@ module AMQP
         super host, name
       end
 
-      # You can subscribe anything callable to the event, such as lambda/proc,
-      # method(:method_name), attached block or a custom Handler. The only requirements,
-      # it should respond to a #call and accept arguments given to Event#fire.
-      #
-      # You can give optional name to your subscriber. If you do, you can later
-      # unsubscribe it using this name. If you do not give subscriber a name, it will
-      # be auto-generated using its #name method and uuid.
-      #
-      # You can unsubscribe your subscriber later, provided you know its name.
-      #
-      # :call-seq:
-      #   event.subscribe("subscriber_name", proc{|*args| "Subscriber 1"})
-      #   event.subscribe("subscriber_name", method(:method_name))
-      #   event.subscribe(method(:method_name) # Implicit subscriber name == :method_name
-      #   event.subscribe("subscriber_name") {|*args| "Named subscriber block" }
-      #   event += method(:method_name)  # C# compatible syntax, just without useless "delegates"
-      #
+      # Subscribe to external event... Uses @host's transport for actual subscription
       def subscribe(*args, &block)
         super *args, &block
-        @host.transport.subscribe(@routing) {|routing, data| fire(routing, data) } if @subscribers.size = 1
+        transport.subscribe(@routing) {|routing, data| fire(routing, data) } if @subscribers.size == 1
         self # This allows C#-like syntax : my_event += subscriber
       end
 
-      #
+      # Unsubscribe from external event... Cancels @host's transport subscription if no subscribers left
       def unsubscribe(name)
         super name
-        @host.transport.unsubscribe(@routing) if @subscribers.empty?
+        transport.unsubscribe(@routing) if @subscribers.empty?
         self # This allows C#-like syntax : my_event -= subscriber_name
+      end
+
+      def transport
+        @host.transport
       end
     end
   end

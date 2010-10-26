@@ -23,13 +23,18 @@ describe AMQP::Events::EventManager, " when initialized" do
   specify { should respond_to :transport }
   its(:transport) { should_not be nil }
 
-  it "should allow objects to subscribe to its internal Events without engaging Transport" do
+  it "should allow objects to subscribe to its internal Events (without engaging Transport)" do
     event = subject.subscribe(:Burple){|key, data| p key, data}
     event.should be_an AMQP::Events::Event
     @transport.should_not_receive :subscribe
   end
 
-  it "should allow objects to subscribe for external Events through Transport" do
+  it "should allow external events to be defined" do
+    res = subject.event :ExternalBar, routing: '#.bar.#'
+    res.should be_an AMQP::Events::ExternalEvent
+  end
+
+  it "should allow objects to subscribe to external Events (through Transport)" do
     @transport.should_receive :subscribe
     event = subject.subscribe(:LogEvent, routing: '#.log.#'){|key, data| p key, data}
     event.should be_an AMQP::Events::ExternalEvent

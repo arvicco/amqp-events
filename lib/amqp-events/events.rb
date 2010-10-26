@@ -44,6 +44,7 @@ module AMQP
 
           unless instance_events.include? sym_name
             instance_events << sym_name
+
             # Defines instance method that has the same name as the Event being declared.
             # Calling it without arguments returns Event object itself
             # Calling it with block adds unnamed subscriber for Event
@@ -64,10 +65,10 @@ module AMQP
 
             # Needed to support C#-like syntax : my_event -= subscriber
             define_method "#{name}=" do |event|
-              if event.kind_of? Event
+              if event.kind_of?( Event) && event.name == name.to_sym
                 events[name.to_sym] = event
               else
-                raise Events::SubscriberTypeError.new "Attempted assignment #{event.inspect} is not an Event"
+                raise EventError.new "Wrong assignment of #{event.inspect} to #{events[name.to_sym].inspect}"
               end
             end
           end

@@ -30,11 +30,11 @@ describe AMQP::Events::ExternalEvent, ' class' do
 end
 
 describe AMQP::Events::ExternalEvent, ' as created event' do
-  before {@transport ||= mock 'transport'}
-  subject { AMQP::Events::Event.create self, 'TestEvent', @transport }
+  let(:transport) {mock('transport').as_null_object} # Needed by ExternalEvent to set up subscription
+  subject { AMQP::Events::Event.create self, 'TestEvent', 'routing' }
 
   specify { should respond_to :transport }
-  its(:transport) { should_not be_nil}
+  its(:transport) { should_not be_nil }
   its(:name) { should == :TestEvent }
   its(:subscribers) { should be_empty }
 
