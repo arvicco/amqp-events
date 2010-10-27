@@ -8,6 +8,16 @@ def subscribers_to_be_called(num, event = subject)
   @counter.should == num
 end
 
+def should_be_defined_event(object=subject, name)
+  object.should respond_to name.to_sym
+  object.should respond_to "#{name}=".to_sym
+  object.events.should include name.to_sym
+  object.class.instance_events.should include name.to_sym
+  object.events.should_not include name.to_s
+  object.class.instance_events.should_not include name.to_s
+  object.send(name.to_sym).should be_kind_of AMQP::Events::Event
+end
+
 def define_subscribers
   def self.subscriber_method(*args)
     args.should == ["data"]
@@ -22,12 +32,14 @@ end
 
 shared_examples_for 'evented class' do
   specify { should respond_to :instance_events }
+  specify { should respond_to :event }
   its(:instance_events) { should be_a Hash }
 
 end
 
 shared_examples_for 'evented object' do
 
+  specify { should respond_to :event }
   specify { should respond_to :events }
   its(:events) { should be_a Hash }
 
@@ -39,10 +51,42 @@ shared_examples_for 'evented object' do
     end
   end
 
-  context 'with proc/method/block @subscribers and Bar event defined' do
+  context 'with proc/method/block @subscribers and at least Bar event defined' do
     before do
       define_subscribers
       subject.event :Bar unless subject.class.instance_events.include? :Bar
+    end
+
+    context 'creating new (class-wide) Events' do
+      before { @events_size = subject.events.size }
+
+      it 'should create events on instance, with Symbol as a name' do
+  # object effectively defines new Event for all similar instances... Should it be allowed?
+        res = subject.event :Grumple
+        res.should == subject.Grumple # returns new Event
+        should_be_defined_event :Grumple
+        subject.events.size.should == @events_size + 1
+      end
+
+      it 'should create events on instance, with String as a name' do
+  # object effectively defines new Event for all similar instances... Should it be allowed?
+        res = subject.event 'Blurp'
+        res.should == subject.Blurp # returns new Event
+        should_be_defined_event :Blurp
+        subject.events.size.should == @events_size + 1
+      end
+
+      it 'should not redefine already defined events' do
+        res = subject.event :Bar
+        res.should == subject.Bar # returns existing Event
+        should_be_defined_event :Bar
+        subject.events.size.should == @events_size
+
+        res = subject.event 'Bar'
+        res.should == subject.Bar # returns existing Event
+        should_be_defined_event :Bar
+        subject.events.size.should == @events_size
+      end
     end
 
     context '#Bar and #Bar= accessor method for defined Event' do
@@ -58,6 +102,7 @@ shared_examples_for 'evented object' do
       it 'allows assignment of pre-defined Event to self (+=/-=)' do
         events_size = subject.events.size
         subject.Bar = subject.Bar
+        subject.Bar = subject.event(:Bar)
         subject.Bar = subject.events[:Bar]
 
         subject.class.instance_events.should include :Bar
@@ -66,9 +111,10 @@ shared_examples_for 'evented object' do
 
       it 'raises error if you try to assign anything else to Event' do
         events_size = subject.events.size
-        other_event = AMQP::Events::Event.create(self, 'Baz')
-        same_name_event = AMQP::Events::Event.create(self, 'Bar')
-        other_object_event = AMQP::Events::Event.create(Object.new, 'Bar')
+        other_event = AMQP::Events::Event.create(self, :Foo)
+        same_name_event = AMQP::Events::Event.create(self, :Bar)
+        other_object_event = AMQP::Events::Event.create(Object.new, :Bar)
+
         [1, 'event', :Baz, other_event, same_name_event, other_object_event, proc {}].each do |rvalue|
           expect { subject.Bar = rvalue }.to raise_error AMQP::Events::EventError, /Wrong assignment/
         end

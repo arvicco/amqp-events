@@ -67,5 +67,8 @@ describe AMQP::Events::ExternalEvent, ' as created event' do
   it 'should unsubscribe transport when no subscribers left...'
   it 'should NOT unsubscribe transport when one subscriber unsubscribes, but there are others left...'
 
+  context 'for evented objects where ExternalEvents may be defined' do
+    it 'should raise error if existing Event is redefined with different options'
+  end
 end
 

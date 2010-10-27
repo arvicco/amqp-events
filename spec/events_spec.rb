@@ -23,25 +23,6 @@ describe TestClassWithoutEvents, ' when instantiated' do
   its(:events) { should be_empty }
   it_should_behave_like 'evented object'
 
-  context 'creating new (class-wide) Events' do
-    it 'should create events on instance, with Symbol as a name' do
-      res = subject.event :Blurp
-      res.should be_an AMQP::Events::Event
-      subject.events.should include :Blurp
-      # object effectively defines new Event for all similar instances... Should it be allowed?
-      subject.class.instance_events.should include :Blurp
-    end
-
-    it 'should create events on instance, with String as a name' do
-      res = subject.event 'Blurp'
-      res.should be_an AMQP::Events::Event
-      subject.events.should include :Blurp
-      subject.class.instance_events.should include :Blurp
-      subject.events.should_not include 'Blurp'
-      subject.class.instance_events.should_not include 'Blurp'
-    end
-  end
-
   context "when Event is defined for this object, it" do
     before do
       @object = TestClassWithoutEvents.new
@@ -55,23 +36,38 @@ end
 describe TestClassWithEvents, ' that includes AMQPEvents::Events and pre-defines events Bar/Baz' do
   subject { TestClassWithEvents }
 
-  it_should_behave_like 'evented class'
   its(:instance_events) { should include :Bar }
   its(:instance_events) { should include :Baz }
 
-  it 'should create new events' do
-    subject.event :Foo
-    subject.instance_events.should include :Foo
-  end
+  it_should_behave_like 'evented class'
 
-  it 'should not redefine already defined events' do
-    events_size = subject.instance_events.size
-    subject.event :Bar
-    subject.instance_events.should include :Bar
-    subject.instance_events.size.should == events_size
-    subject.event 'Bar'
-    subject.instance_events.should include :Bar
-    subject.instance_events.size.should == events_size
+  context 'creating new Events' do
+    before { @events_size = subject.instance_events.size }
+
+    it 'should create events on instance, with Symbol as a name' do
+      res = subject.event :Foo
+      res.should == :Foo
+      should_be_defined_event(subject.new, :Foo)
+      subject.instance_events.size.should == @events_size + 1
+    end
+
+    it 'should create events on instance, with String as a name' do
+      res = subject.event 'Boo'
+      res.should == :Boo
+      should_be_defined_event(subject.new, :Boo)
+      subject.instance_events.size.should == @events_size + 1
+    end
+
+    it 'should not redefine already defined events' do
+      res = subject.event :Bar
+      res.should == :Bar
+      should_be_defined_event(subject.new, :Bar)
+      subject.instance_events.size.should == @events_size
+      res = subject.event 'Bar'
+      res.should == :Bar
+      should_be_defined_event(subject.new, :Bar)
+      subject.instance_events.size.should == @events_size
+    end
   end
 end
 
@@ -81,43 +77,6 @@ describe TestClassWithEvents, ' when instantiated' do
 
   its(:events) { should have_key :Bar }
   its(:events) { should have_key :Baz }
-
-  context 'creating new (class-wide) Events' do
-    it 'should not redefine already defined events' do
-      events_size = subject.events.size
-      res = subject.event :Baz
-      res.should be_an AMQP::Events::Event
-      subject.events.should include :Baz
-      subject.events.size.should == events_size
-
-      subject.event 'Baz'
-      subject.events.should include :Baz
-      subject.events.should_not include 'Baz'
-      subject.class.instance_events.should include :Baz
-      subject.class.instance_events.should_not include 'Baz'
-      subject.events.size.should == events_size
-    end
-  end
-
-  context 'assigning into pre-defined Events (for C# compatibility)' do
-    it 'allows assignment of pre-defined Event to self (+=/-=)' do
-      events_size = subject.events.size
-      subject.Baz = subject.Baz
-      subject.Baz = subject.events[:Baz]
-
-      subject.class.instance_events.should include :Baz
-      subject.events.size.should == events_size
-    end
-
-    it 'raises error if you try to assign anything else to Event' do
-      events_size = subject.events.size
-      [1, 'event', :Baz, subject.Bar, proc {}].each do |rvalue|
-        expect { subject.Baz = rvalue }.to raise_error AMQP::Events::EventError, /Wrong assignment/
-      end
-      subject.class.instance_events.should include :Baz
-      subject.events.size.should == events_size
-    end
-  end
 
   context "its pre-defined Events" do
     before do

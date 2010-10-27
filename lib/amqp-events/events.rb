@@ -69,6 +69,7 @@ module AMQP
                     ) unless event.equal? events[name.to_sym]
             end
           end
+          sym_name # .event macro returns defined sym name
         end
       end
 
