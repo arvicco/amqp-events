@@ -12,8 +12,8 @@ def should_be_defined_event(object=subject, name)
   object.should respond_to name.to_sym
   object.should respond_to "#{name}=".to_sym
   object.events.should include name.to_sym
-  object.class.instance_events.should include name.to_sym
   object.events.should_not include name.to_s
+  object.class.instance_events.should include name.to_sym
   object.class.instance_events.should_not include name.to_s
   object.send(name.to_sym).should be_kind_of AMQP::Events::Event
 end
@@ -95,8 +95,13 @@ shared_examples_for 'evented object' do
         should respond_to :Bar=
       end
 
-      specify 'calling Bar without args returns Bar event itself' do
+      specify 'calling #Bar without args returns Bar Event itself' do
         subject.Bar.should == subject.events[:Bar]
+      end
+
+      specify 'calling #Bar with args fires Bar Event (like in C#)' do
+        subject.Bar.should_receive :fire
+        subject.Bar("whatever")
       end
 
       it 'allows assignment of pre-defined Event to self (+=/-=)' do
