@@ -95,12 +95,18 @@ shared_examples_for 'evented object' do
         should respond_to :Bar=
       end
 
-      specify 'calling #Bar without args returns Bar Event itself' do
+      specify 'calling #Bar without args or block returns Bar Event itself' do
         subject.Bar.should == subject.events[:Bar]
       end
 
+      specify 'calling #Bar without args, but WITH block subscribes block to Bar Event' do
+        subject.Bar { |*args| args.should == ["data"]; @counter += 1 }
+
+        subscribers_to_be_called 1, subject.Bar
+      end
+
       specify 'calling #Bar with args fires Bar Event (like in C#)' do
-        subject.Bar.should_receive :fire
+        subject.Bar.should_receive(:fire).with("whatever")
         subject.Bar("whatever")
       end
 
@@ -137,6 +143,13 @@ shared_examples_for 'evented object' do
         subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
 
         subscribers_to_be_called 3, subject.Bar
+      end
+
+      it "allows shorthand subscription through #Bar (blocks only!)" do
+        subject.Bar { |*args| args.should == ["data"]; @counter += 1 }
+        subject.Bar &@subscriber_proc
+
+        subscribers_to_be_called 2, subject.Bar
       end
 
       it "syntax-sugars object.Event#subscribe as object.subscribe(:Event)" do
