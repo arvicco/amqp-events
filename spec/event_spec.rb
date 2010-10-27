@@ -62,5 +62,10 @@ describe AMQP::Events::ExternalEvent, ' as created event' do
 
   it_should_behave_like 'event'
 
+  it 'should fire when transport calls subscription...'
+  it 'should subscribe transport when it is subscribed to'
+  it 'should unsubscribe transport when no subscribers left...'
+  it 'should NOT unsubscribe transport when one subscriber unsubscribes, but there are others left...'
+
 end
 

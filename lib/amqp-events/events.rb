@@ -62,13 +62,11 @@ module AMQP
               end
             end
 
-            # Needed to support C#-like syntax : my_event -= subscriber
+            # Only supports assignment of the Event to self
+            # Needed to support C#-like syntax : my_event += subscriber
             define_method "#{name}=" do |event|
-              if event.kind_of?(Event) && event.name == name.to_sym
-                events[name.to_sym] = event
-              else
-                raise EventError.new "Wrong assignment of #{event.inspect} to #{events[name.to_sym].inspect}"
-              end
+              raise EventError.new("Wrong assignment of #{event.inspect} to #{events[name.to_sym].inspect}"
+                    ) unless event.equal? events[name.to_sym]
             end
           end
         end

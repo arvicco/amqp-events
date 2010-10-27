@@ -27,91 +27,128 @@ shared_examples_for 'evented class' do
 end
 
 shared_examples_for 'evented object' do
+
   specify { should respond_to :events }
   its(:events) { should be_a Hash }
 
-  it 'it`s events should know about their name and host' do
+  it 'it`s events property contains Events that know about their name and host' do
     subject.events.each do |name, event|
+      event.should be_kind_of AMQP::Events::Event
       event.name.should == name
       event.host.should == subject
     end
   end
 
-  context "#subscribe to object's Event" do
+  context 'with proc/method/block @subscribers and Bar event defined' do
     before do
       define_subscribers
       subject.event :Bar unless subject.class.instance_events.include? :Bar
     end
 
-    it "allows access to object's Events through its #events property" do
-      subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
-      subject.events[:Bar].subscribe(:bar2, method(:subscriber_method))
-      subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
+    context '#Bar and #Bar= accessor method for defined Event' do
+      it 'should respond to #Bar and #Bar=' do
+        should respond_to :Bar
+        should respond_to :Bar=
+      end
 
-      subscribers_to_be_called 3, subject.Bar
+      specify 'calling Bar without args returns Bar event itself' do
+        subject.Bar.should == subject.events[:Bar]
+      end
+
+      it 'allows assignment of pre-defined Event to self (+=/-=)' do
+        events_size = subject.events.size
+        subject.Bar = subject.Bar
+        subject.Bar = subject.events[:Bar]
+
+        subject.class.instance_events.should include :Bar
+        subject.events.size.should == events_size
+      end
+
+      it 'raises error if you try to assign anything else to Event' do
+        events_size = subject.events.size
+        other_event = AMQP::Events::Event.create(self, 'Baz')
+        same_name_event = AMQP::Events::Event.create(self, 'Bar')
+        other_object_event = AMQP::Events::Event.create(Object.new, 'Bar')
+        [1, 'event', :Baz, other_event, same_name_event, other_object_event, proc {}].each do |rvalue|
+          expect { subject.Bar = rvalue }.to raise_error AMQP::Events::EventError, /Wrong assignment/
+        end
+        subject.class.instance_events.should include :Bar
+        subject.events.size.should == events_size
+      end
+
     end
 
-    it "syntax-sugars object.Event#subscribe as object.subscribe(:Event)" do
-      subject.subscribe(:Bar) { |*args| args.should == ["data"]; @counter += 1 }
-      subject.subscribe(:Bar, :bar1, @subscriber_proc)
-      subject.subscribe(:Bar, :bar2, @subscriber_proc)
-      subject.subscribe(:Bar, :bar3, &@subscriber_proc)
-      subject.subscribe :Bar, @subscriber_proc
-      subject.subscribe :Bar, &@subscriber_proc
-      subject.listen :Bar, @subscriber_proc
-      subject.subscribe(:Bar, :bar4, method(:subscriber_method))
-      subject.subscribe(:Bar, :bar5, method(:subscriber_method))
-      res = subject.listen(:Bar, :bar6, method(:subscriber_method))
+    context "#subscribe to object's Event" do
 
-      res.should be_an AMQP::Events::Event
-      res.name.should == :Bar
-      subscribers_to_be_called 10, subject.Bar
+      it "allows access to object's Events through its #events property" do
+        subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
+        subject.events[:Bar].subscribe(:bar2, method(:subscriber_method))
+        subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
+
+        subscribers_to_be_called 3, subject.Bar
+      end
+
+      it "syntax-sugars object.Event#subscribe as object.subscribe(:Event)" do
+        subject.subscribe(:Bar) { |*args| args.should == ["data"]; @counter += 1 }
+        subject.subscribe(:Bar, :bar1, @subscriber_proc)
+        subject.subscribe(:Bar, :bar2, @subscriber_proc)
+        subject.subscribe(:Bar, :bar3, &@subscriber_proc)
+        subject.subscribe :Bar, @subscriber_proc
+        subject.subscribe :Bar, &@subscriber_proc
+        subject.listen :Bar, @subscriber_proc
+        subject.subscribe(:Bar, :bar4, method(:subscriber_method))
+        subject.subscribe(:Bar, :bar5, method(:subscriber_method))
+        res = subject.listen(:Bar, :bar6, method(:subscriber_method))
+
+        res.should be_an AMQP::Events::Event
+        res.name.should == :Bar
+        subscribers_to_be_called 10, subject.Bar
+      end
+    end #subscribe
+
+    context "#unsubscribe from object's Event" do
+      before { define_subscribers }
+
+      it "allows you to unsubscribe from Events by name" do
+        subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
+        subject.events[:Bar].subscribe(:bar2, method(:subscriber_method))
+        subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
+
+        subject.events[:Bar].unsubscribe(:bar1)
+        subject.events[:Bar].unsubscribe(:bar2)
+        subject.events[:Bar].unsubscribe(:bar3)
+
+        subscribers_to_be_called 0, subject.Bar
+      end
+
+      it "syntax-sugars object.Event#unsubscribe as object.unsubscribe(:Event)" do
+        subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
+        subject.events[:Bar].subscribe(:bar2, method(:subscriber_method))
+        subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
+
+        subject.unsubscribe(:Bar, :bar1)
+        subject.unsubscribe(:Bar, :bar2)
+        subject.remove(:Bar, :bar3)
+
+        subscribers_to_be_called 0, subject.Bar
+      end
+
+      it "raises error trying to unsubscribe undefined Event)" do
+        expect { subject.unsubscribe(:Gurgle, :bar) }.
+                to raise_error /Unable to unsubscribe, there is no event Gurgle/
+
+        subscribers_to_be_called 0, subject.Bar
+      end
+
+      it "raises error trying to unsubscribe unknown subscriber)" do
+        subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
+
+        expect { subject.unsubscribe(:Bar, @subscriber_proc) }.
+                to raise_error /Unable to unsubscribe handler/
+
+        subscribers_to_be_called 1, subject.Bar
+      end
     end
-  end #subscribe
-
-  context "#unsubscribe from object's Event" do
-    before { define_subscribers }
-
-    it "allows you to unsubscribe from Events by name" do
-      subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
-      subject.events[:Bar].subscribe(:bar2, method(:subscriber_method))
-      subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
-
-      subject.events[:Bar].unsubscribe(:bar1)
-      subject.events[:Bar].unsubscribe(:bar2)
-      subject.events[:Bar].unsubscribe(:bar3)
-
-      subscribers_to_be_called 0, subject.Bar
-    end
-
-    it "syntax-sugars object.Event#unsubscribe as object.unsubscribe(:Event)" do
-      subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
-      subject.events[:Bar].subscribe(:bar2, method(:subscriber_method))
-      subject.events[:Bar].subscribe(:bar3, @subscriber_proc)
-
-      subject.unsubscribe(:Bar, :bar1)
-      subject.unsubscribe(:Bar, :bar2)
-      subject.remove(:Bar, :bar3)
-
-      subscribers_to_be_called 0, subject.Bar
-    end
-
-    it "raises error trying to unsubscribe undefined Event)" do
-      expect { subject.unsubscribe(:Gurgle, :bar) }.
-              to raise_error /Unable to unsubscribe, there is no event Gurgle/
-
-      subscribers_to_be_called 0, subject.Bar
-    end
-
-    it "raises error trying to unsubscribe unknown subscriber)" do
-      subject.events[:Bar].subscribe(:bar1) { |*args| args.should == ["data"]; @counter += 1 }
-
-      expect { subject.unsubscribe(:Bar, @subscriber_proc) }.
-              to raise_error /Unable to unsubscribe handler/
-
-      subscribers_to_be_called 1, subject.Bar
-    end
-
   end #unsubscribe
 end
 

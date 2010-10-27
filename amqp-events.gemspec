@@ -31,6 +31,7 @@ Gem::Specification.new do |gem|
   # Dependencies
   gem.add_development_dependency("rspec", [">= 1.2.9"])
   gem.add_development_dependency("cucumber", [">= 0"])
+  gem.add_dependency("amqp", ["~> 0.6.6"])
   gem.add_dependency("bundler", [">= 1.2.9"])
 
   # gem.rubyforge_project = ""
