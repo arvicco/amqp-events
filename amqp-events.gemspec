@@ -29,7 +29,7 @@ Gem::Specification.new do |gem|
   gem.extra_rdoc_files = ["LICENSE", "HISTORY", "README.rdoc"]
     
   # Dependencies
-  gem.add_development_dependency("rspec", [">= 1.2.9"])
+  gem.add_development_dependency("rspec", ['~>2.0.0'])
   gem.add_development_dependency("cucumber", [">= 0"])
   gem.add_dependency("amqp", ["~> 0.6.6"])
   gem.add_dependency("bundler", [">= 1.2.9"])

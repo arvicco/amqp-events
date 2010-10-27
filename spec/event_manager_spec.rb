@@ -36,11 +36,13 @@ describe AMQP::Events::EventManager, " when initialized" do
 
     context 'any of its defined external Events' do
       subject { @event_manager.ExternalBar }
+      specify {should be_an AMQP::Events::ExternalEvent}
       it_should_behave_like 'event'
     end
 
     context 'any of its defined internal Events' do
       subject { @event_manager.Foo }
+      specify {should be_an AMQP::Events::Event}
       it_should_behave_like 'event'
     end
   end

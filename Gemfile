@@ -21,12 +21,12 @@ gem 'uuid'
 
 group :cucumber do
   gem 'cucumber'
-  gem 'rspec', '~>1.3.0', require: ['spec/expectations', 'spec/stubs/cucumber']
+  gem 'rspec', '~>2.0.0', require: ['rspec/expectations', 'rspec/stubs/cucumber']
   # add more here...
 end
 
 group :test do # Group for testing code on Windows (win, win_gui)
-  gem 'rspec', '~>1.3.0', require: ['spec', 'spec/autorun']
+  gem 'rspec', '~>2.0.0', require: ['rspec', 'rspec/autorun']
   gem 'amqp-spec', '>=0.1.13', require: 'amqp-spec/rspec'
 end
 
