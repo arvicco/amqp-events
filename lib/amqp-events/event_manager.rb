@@ -1,4 +1,4 @@
-require 'mq'
+#require 'mq'
 
 module AMQP
   module Events

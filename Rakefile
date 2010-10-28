@@ -11,13 +11,7 @@ require 'version'
 CLASS_NAME = AMQP::Events
 VERSION = CLASS_NAME::VERSION
 
-begin
-  require 'rake'
-rescue LoadError
-  require 'rubygems'
-  gem 'rake', '~> 0.8.3.1'
-  require 'rake'
-end
+require 'rake'
 
 # Load rakefile tasks
 Dir['tasks/*.rake'].sort.each { |file| load file }
