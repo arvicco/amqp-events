@@ -3,7 +3,7 @@ GEM
   specs:
     amqp (0.6.7)
       eventmachine (>= 0.12.4)
-    amqp-spec (0.1.13)
+    amqp-spec (0.2.1)
       amqp (~> 0.6.7)
     builder (2.1.2)
     cucumber (0.9.2)
@@ -43,7 +43,7 @@ PLATFORMS
 
 DEPENDENCIES
   amqp (~> 0.6.6)
-  amqp-spec (>= 0.1.13)
+  amqp-spec (>= 0.2.1)
   cucumber
   rspec (~> 2.0.0)
   uuid

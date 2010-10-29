@@ -68,6 +68,21 @@ describe TestClassWithEvents, ' that includes AMQPEvents::Events and pre-defines
       should_be_defined_event(subject.new, :Bar)
       subject.instance_events.size.should == @events_size
     end
+
+    context 'when defined Event is redefined with different type (ExternalEvents instead of Event)' do
+      it 'should raise error if existing Event is redefined with different options' do
+        expect {subject.event :Bar, routing: 'routing', transport: 'transport'}.
+                to raise_error /Unable to redefine Event Bar with options {:routing=>"routing", :transport=>"transport"}/
+        should_be_defined_event(subject.new, :Bar)
+        subject.new.Bar.should be_an AMQP::Events::Event
+        subject.instance_events.size.should == @events_size
+        expect {subject.event 'Bar', routing: 'routing', transport: 'transport'}.
+                to raise_error /Unable to redefine Event Bar with options {:routing=>"routing", :transport=>"transport"}/
+        should_be_defined_event(subject.new, :Bar)
+        subject.new.Bar.should be_an AMQP::Events::Event
+        subject.instance_events.size.should == @events_size
+      end
+    end
   end
 end
 
