@@ -56,6 +56,14 @@ module AMQP
         super()
       end
 
+      # Adds new known exchange to Transport's set of exchanges
+      #
+      def add_exchange name, opts = {}
+        type       = opts.delete(:type) || :topic                 # By default, topic exchange
+        exchange   = @mq.__send__(type, "#{@root}.#{name}", opts)
+        @exchanges[name] = exchange
+      end
+
       private
 
       # Turns list of exchange names (possibly with exchange options) into {'name'=>Exchange} Hash

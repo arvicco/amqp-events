@@ -68,6 +68,7 @@ def define_subscribers
 end
 
 # Makes 'subject' actively evaluated instead of default lazy evaluation
+# in order to use evaluated subject multiple times in one example, use *@subject*
 def active_subject &block
-  define_method :subject, &block
+  define_method(:subject){ @subject = block.call}
 end

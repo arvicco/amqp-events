@@ -12,6 +12,25 @@ shared_examples_for 'AMQP Transport' do
   its(:root) { should == 'test'; done }
   its(:exchanges) { should be_a Hash; done }
   its(:routes) { should be_empty; done }
+
+  context '#add_exchange' do
+    it 'Adds new known exchange by name' do
+      subject.add_exchange 'exchange1'
+      @subject.exchanges.should have_key 'exchange1'
+      @subject.exchanges['exchange1'].should be_an MQ::Exchange
+      done
+    end
+
+    it 'Adds new known exchange by name and options' do
+      subject.add_exchange 'exchange2', type: 'fanout'
+      @subject.exchanges.should have_key 'exchange2'
+      @subject.exchanges['exchange2'].should be_an MQ::Exchange
+      @subject.exchanges['exchange2'].type.should == :fanout
+      done
+    end
+  end
+
+  it 'should create new route when subscribed to'
 end
 
 shared_examples_for 'Transport interface' do
