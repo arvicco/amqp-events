@@ -47,19 +47,24 @@ module AMQP
       # Accepts obligatory *root* (of AMQP exchange hierarchy) and a list of known exchanges.
       # Exchanges can be given as a names list or Hash of 'name' => {options} pairs.
       def initialize root, *args
-        raise TransportError.new "Unable to create AMQPTransport without active AMQP connection" unless AMQP.conn && AMQP.conn.connected?
-
-        super()
-        @routes    = {}
         @root      = root
         raise TransportError.new "Unable to create AMQPTransport with root #{root.inspect}" unless @root
+        raise TransportError.new "Unable to create AMQPTransport without active AMQP connection" unless AMQP.conn && AMQP.conn.connected?
         @mq        = MQ.new
+        @exchanges = exchanges_from *args
+        @routes    = {}
+        super()
+      end
 
+      private
+
+      # Turns list of exchange names (possibly with exchange options) into {'name'=>Exchange} Hash
+      def exchanges_from *args
         exchanges  = args.last.is_a?(Hash) ? args.pop.to_a : []
         exchanges  += args.map { |name| [name, {}] }
-        @exchanges = exchanges.inject({}) do |hash, (name, opts)|
+        exchanges.inject({}) do |hash, (name, opts)|
           type       = opts.delete(:type) || :topic
-          exchange   = @mq.__send__(type, "#{root}.#{name}", opts)
+          exchange   = @mq.__send__(type, "#{@root}.#{name}", opts)
           hash[name] = exchange
           hash
         end
