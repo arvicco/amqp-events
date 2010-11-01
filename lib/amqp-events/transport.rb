@@ -68,7 +68,7 @@ module AMQP
       private
 
       # Turns list of exchange names (possibly with exchange options) into {'name'=>Exchange} Hash
-      def exchanges_from *args
+      def add_exchanges_from *args
         exchanges  = args.last.is_a?(Hash) ? args.pop.to_a : []
         exchanges  += args.map { |name| [name, {}] }
         exchanges.each { |name, opts| add_exchange name, opts }
