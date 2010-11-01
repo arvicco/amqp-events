@@ -15,7 +15,7 @@ describe AMQP::Events::EventManager, " when initialized" do
 
   it_should_behave_like 'evented object'
   specify { should respond_to :transport }
-  its(:transport) { should_not be nil }
+  its(:transport) { should == @transport }
 
   it "should allow external events to be defined" do
     res = subject.event :ExternalBar, routing: '#.bar.#'
@@ -30,7 +30,6 @@ describe AMQP::Events::EventManager, " when initialized" do
     end
     subject { @event_manager }
 
-    its(:events) { should_not be_empty }
     its(:events) { should have_key :Foo }
     its(:events) { should have_key :ExternalBar }
 
@@ -49,14 +48,14 @@ describe AMQP::Events::EventManager, " when initialized" do
 
   context 'subscribing to EventManager`s Events' do
     it "should allow objects to subscribe to its internal Events (without engaging Transport)" do
-      event = subject.subscribe(:Burp) { |key, data| p key, data }
-      event.should be_an AMQP::Events::Event
       @transport.should_not_receive :subscribe
+      event = subject.subscribe(:Burp) { |route, data| }
+      event.should be_an AMQP::Events::Event
     end
 
     it "should allow objects to subscribe to external Events (through Transport)" do
       @transport.should_receive(:subscribe).with '#.log.#'
-      event = subject.event(:LogEvent, routing: '#.log.#').subscribe(:my_log) { |key, data| p key, data }
+      event = subject.event(:LogEvent, routing: '#.log.#').subscribe(:my_log) { |route, data|  }
       event.should be_an AMQP::Events::ExternalEvent
     end
   end

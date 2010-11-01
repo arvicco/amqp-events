@@ -1,3 +1,5 @@
+require 'amqp-events/event'
+
 module AMQP
   module Events
 

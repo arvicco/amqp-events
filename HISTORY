@@ -17,3 +17,7 @@
 == 0.0.4 / 2010-10-29
 
 * Spec suite complete as of current behavior
+
+== 0.0.5 / 2010-11-01
+
+* AMQPTransport.new specified

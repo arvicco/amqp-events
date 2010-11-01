@@ -280,3 +280,4 @@ shared_examples_for('event') do
     end
   end #unsubscribe
 end
+

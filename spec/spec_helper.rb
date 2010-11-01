@@ -8,16 +8,32 @@ require 'shared_examples'
 
 BASE_PATH = Pathname.new(__FILE__).dirname + '..'
 
-#Spec::Runner.configure do |config|
-#  # == Mock Framework
-#  #
-#  # RSpec uses it's own mocking framework by default. If you prefer to
-#  # use mocha, flexmock or RR, uncomment the appropriate line:
-#  #
-#  # config.mock_with :mocha
-#  # config.mock_with :flexmock
-#  # config.mock_with :rr
-#end
+amqp_config = File.dirname(__FILE__) + '/amqp.yml'
+
+if File.exists? amqp_config
+  class Hash
+    def symbolize_keys
+      self.inject({}) { |result, (key, value)|
+        new_key = case key
+                    when String then
+                      key.to_sym
+                    else
+                      key
+                  end
+        new_value = case value
+                      when Hash then
+                        value.symbolize_keys
+                      else
+                        value
+                    end
+        result[new_key] = new_value
+        result
+      }
+    end
+  end
+
+  AMQP_OPTS = YAML::load_file(amqp_config).symbolize_keys[:test]
+end
 
 def subscribers_to_be_called(num, event = subject)
   @counter = 0
@@ -49,4 +65,9 @@ def define_subscribers
     args.should == ["data"]
     @counter += 1
   end
+end
+
+# Makes 'subject' actively evaluated instead of default lazy evaluation
+def active_subject &block
+  define_method :subject, &block
 end

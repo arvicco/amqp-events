@@ -26,10 +26,13 @@ module AMQP
       UUID = EventMachine::UuidGenerator
     end
 
-    class HandlerError < TypeError
+    class HandlerError < StandardError
     end
 
-    class EventError < TypeError
+    class EventError < StandardError
+    end
+
+    class TransportError < StandardError
     end
   end
 end

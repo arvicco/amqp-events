@@ -1,3 +1,5 @@
+require 'amqp-events/events'
+
 module AMQP
   module Events
 
@@ -122,14 +124,14 @@ module AMQP
         super host, name
       end
 
-      # Subscribe to external event... Uses @host's transport for actual subscription
+      # Subscribe to external event... Uses @transport for actual subscription
       def subscribe(*args, &block)
         super *args, &block
         @transport.subscribe(@routing) {|routing, data| fire(routing, data) } if @subscribers.size == 1
         self # This allows C#-like syntax : my_event += subscriber
       end
 
-      # Unsubscribe from external event... Cancels @host's transport subscription if no subscribers left
+      # Unsubscribe from external event... Cancels @transport subscription if no subscribers left
       def unsubscribe(name)
         super name
         @transport.unsubscribe(@routing) if @subscribers.empty?
