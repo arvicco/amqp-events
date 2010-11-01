@@ -51,16 +51,17 @@ module AMQP
         raise TransportError.new "Unable to create AMQPTransport with root #{root.inspect}" unless @root
         raise TransportError.new "Unable to create AMQPTransport without active AMQP connection" unless AMQP.conn && AMQP.conn.connected?
         @mq        = MQ.new
-        @exchanges = exchanges_from *args
         @routes    = {}
+        @exchanges = {}
+        add_exchanges_from *args
         super()
       end
 
       # Adds new known exchange to Transport's set of exchanges
       #
       def add_exchange name, opts = {}
-        type       = opts.delete(:type) || :topic                 # By default, topic exchange
-        exchange   = @mq.__send__(type, "#{@root}.#{name}", opts)
+        type             = opts.delete(:type) || :topic # By default, topic exchange
+        exchange         = @mq.__send__(type, "#{@root}.#{name}", opts)
         @exchanges[name] = exchange
       end
 
@@ -70,12 +71,7 @@ module AMQP
       def exchanges_from *args
         exchanges  = args.last.is_a?(Hash) ? args.pop.to_a : []
         exchanges  += args.map { |name| [name, {}] }
-        exchanges.inject({}) do |hash, (name, opts)|
-          type       = opts.delete(:type) || :topic
-          exchange   = @mq.__send__(type, "#{@root}.#{name}", opts)
-          hash[name] = exchange
-          hash
-        end
+        exchanges.each { |name, opts| add_exchange name, opts }
       end
     end
   end
