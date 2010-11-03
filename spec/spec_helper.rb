@@ -14,18 +14,8 @@ if File.exists? amqp_config
   class Hash
     def symbolize_keys
       self.inject({}) { |result, (key, value)|
-        new_key = case key
-                    when String then
-                      key.to_sym
-                    else
-                      key
-                  end
-        new_value = case value
-                      when Hash then
-                        value.symbolize_keys
-                      else
-                        value
-                    end
+        new_key = key.is_a?(String) ? key.to_sym : key
+        new_value = value.is_a?(Hash) ? value.symbolize_keys : value
         result[new_key] = new_value
         result
       }

@@ -14,7 +14,6 @@ module AMQP
     # #subscribe(routing, &block):: subscribe given block to a requested routing
     # #unsubscribe(routing):: cancel subscription to specific routing
     #
-    #
     class Transport
 
       def subscribe routing, &block
@@ -38,14 +37,25 @@ module AMQP
     # EventManager into actual combination of AMQP ‘exchange/queue name’ + ‘topic routing’.
     #
     # TODO:  Where exactly does it get knowledge of actual exchange names, formats, etc from?
+    # TODO: Abstract away actual AMQP library into MessagingMiddleware abstraction? (for 0mq, fake adapters)
     #
     class AMQPTransport < Transport
 
+      class Exchange
+
+        attr_reader :opts
+
+        def initialize name, opts
+
+        end
+      end
+
       attr_accessor :root, :routes, :exchanges
 
-      # New AMQP transport for ExternalEvents - uses existing (already established) AMQP connection.
+      # New AMQP transport for ExternalEvents - uses AMQP connection (it should already be established).
       # Accepts obligatory *root* (of AMQP exchange hierarchy) and a list of known exchanges.
       # Exchanges can be given as a names list or Hash of 'name' => {options} pairs.
+      #
       def initialize root, *args
         @root      = root
         raise TransportError.new "Unable to create AMQPTransport with root #{root.inspect}" unless @root
@@ -57,21 +67,45 @@ module AMQP
         super()
       end
 
-      # Adds new known exchange to Transport's set of exchanges
+      # Adds new exchange to a set of exchanges known to this Transport,
+      # TODO: make sure only EXISTING exchanges are added and none created (for consistency of existing hierarchy)
       #
       def add_exchange name, opts = {}
-        type             = opts.delete(:type) || :topic # By default, topic exchange
-        exchange         = @mq.__send__(type, "#{@root}.#{name}", opts)
-        @exchanges[name] = exchange
+        real_name        = @root ? "#{@root}.#{name}" : "#{name}"
+        real_opts        = {type: :topic, passive: true}.merge(symbolize(opts))
+
+        if @exchanges[name]
+          raise TransportError.new "Unable to add exchange '#{name}' with opts #{real_opts.inspect}" if exchange_declared_with_different_opts? name, real_opts
+          @exchanges[name]
+        else
+          exchange         = @mq.__send__(real_opts[:type], real_name, real_opts)
+          @exchanges[name] = exchange
+        end
       end
 
       private
 
-      # Turns list of exchange names (possibly with exchange options) into {'name'=>Exchange} Hash
+      # Given a list of exchange names (possibly with exchange options),
+      # adds all of them to this Transport
+      #
       def add_exchanges_from *args
         exchanges  = args.last.is_a?(Hash) ? args.pop.to_a : []
         exchanges  += args.map { |name| [name, {}] }
         exchanges.each { |name, opts| add_exchange name, opts }
+      end
+
+      # TODO: remove dependence on MQ::Exchange implementation detail
+      #
+      def exchange_declared_with_different_opts? name, real_opts
+        @exchanges[name] && @exchanges[name].instance_variable_get(:@opts) != real_opts
+      end
+
+      # Turns both keys and (String) values of hash into Symbols
+      def symbolize hash
+        hash.inject({}) do |result, (key, value)|
+          result[key.to_sym] = value.is_a?(String) ? value.to_sym : value
+          result
+        end
       end
     end
   end

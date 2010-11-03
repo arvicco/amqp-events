@@ -29,5 +29,6 @@ group :test do # Group for testing code on Windows (win, win_gui)
   gem 'rspec', '~>2.0.0', require: ['rspec']
   gem 'amqp-spec', '>=0.2.1', require: 'amqp-spec/rspec'
   gem 'win32console' if RUBY_PLATFORM =~ /mswin|windows|mingw/
+  gem 'my_scripts', '>=0.1.12'
 end
 

@@ -63,7 +63,7 @@ describe AMQP::Events::ExternalEvent, ' as created event' do
   its(:name) { should == :TestEvent }
   its(:subscribers) { should be_empty }
 
-  it_should_behave_like 'event'
+  it_behaves_like 'event'
 
 
   context 'adding subscribers/observers' do

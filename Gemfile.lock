@@ -23,6 +23,7 @@ GEM
     json (1.4.6)
     json (1.4.6-x86-mingw32)
     macaddr (1.0.0)
+    my_scripts (0.1.12)
     rspec (2.0.1)
       rspec-core (~> 2.0.1)
       rspec-expectations (~> 2.0.1)
@@ -45,5 +46,6 @@ DEPENDENCIES
   amqp (~> 0.6.6)
   amqp-spec (>= 0.2.1)
   cucumber
+  my_scripts (>= 0.1.12)
   rspec (~> 2.0.0)
   uuid

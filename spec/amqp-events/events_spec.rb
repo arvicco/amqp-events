@@ -15,13 +15,13 @@ describe TestClassWithoutEvents, ' that includes AMQPEvents::Events' do
   subject { TestClassWithoutEvents }
 
   its(:instance_events) { should be_empty }
-  it_should_behave_like 'evented class'
+  it_behaves_like 'evented class'
 end
 
 describe TestClassWithoutEvents, ' when instantiated' do
 
   its(:events) { should be_empty }
-  it_should_behave_like 'evented object'
+  it_behaves_like 'evented object'
 
   context "when Event is defined for this object, it" do
     before do
@@ -29,7 +29,7 @@ describe TestClassWithoutEvents, ' when instantiated' do
       @object.event :Bar
     end
     subject { @object.Bar }
-    it_should_behave_like 'event'
+    it_behaves_like 'event'
   end
 end
 
@@ -39,7 +39,7 @@ describe TestClassWithEvents, ' that includes AMQPEvents::Events and pre-defines
   its(:instance_events) { should include :Bar }
   its(:instance_events) { should include :Baz }
 
-  it_should_behave_like 'evented class'
+  it_behaves_like 'evented class'
 
   context 'creating new Events' do
     before { @events_size = subject.instance_events.size }
@@ -88,7 +88,7 @@ end
 
 describe TestClassWithEvents, ' when instantiated' do
 
-  it_should_behave_like 'evented object'
+  it_behaves_like 'evented object'
 
   its(:events) { should have_key :Bar }
   its(:events) { should have_key :Baz }
@@ -98,7 +98,7 @@ describe TestClassWithEvents, ' when instantiated' do
       @object = TestClassWithEvents.new
     end
     subject { @object.Bar }
-    it_should_behave_like 'event'
+    it_behaves_like 'event'
   end
 end # TestClassWithEvents, ' when instantiated'
 

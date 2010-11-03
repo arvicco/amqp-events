@@ -3,7 +3,7 @@ require 'spec_helper'
 describe AMQP::Events::EventManager, " as class" do
   subject { described_class }
 
-  it_should_behave_like 'evented class'
+  it_behaves_like 'evented class'
 
 #  its(:instance_events) { should include :ExternalEventReceived}
 
@@ -13,7 +13,7 @@ describe AMQP::Events::EventManager, " when initialized" do
   before { @transport ||= mock('transport').as_null_object }
   subject { described_class.new @transport }
 
-  it_should_behave_like 'evented object'
+  it_behaves_like 'evented object'
   specify { should respond_to :transport }
   its(:transport) { should == @transport }
 
@@ -36,13 +36,13 @@ describe AMQP::Events::EventManager, " when initialized" do
     context 'any of its defined external Events' do
       subject { @event_manager.ExternalBar }
       specify {should be_an AMQP::Events::ExternalEvent}
-      it_should_behave_like 'event'
+      it_behaves_like 'event'
     end
 
     context 'any of its defined internal Events' do
       subject { @event_manager.Foo }
       specify {should be_an AMQP::Events::Event}
-      it_should_behave_like 'event'
+      it_behaves_like 'event'
     end
   end
 
