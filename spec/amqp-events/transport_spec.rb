@@ -74,12 +74,6 @@ shared_examples_for 'AMQP Transport' do
       @num_exchanges = @subject.exchanges.size
 
       # example
-#      p @subject.exchanges.keys
-#      p @subject.exchanges['fanout'].instance_variables
-#      p @subject.exchanges['fanout'].name
-#      p @subject.exchanges['fanout'].type
-#      p @subject.exchanges['fanout'].key
-#      p @subject.exchanges['fanout'].instance_variable_get(:@opts)
       expect { @subject.add_exchange 'fanout' }.
           to raise_error /Unable to add exchange 'fanout' with opts {:type=>:topic/
       expect { @subject.add_exchange 'fanout', durable: true }.
@@ -118,7 +112,10 @@ shared_examples_for 'AMQP Transport with pre-defined exchanges' do
   end
 
   it 'has log exchange with expected characteristics' do
-    log_exchange = subject.exchanges['system'].should_not be_nil
+    log_exchange = subject.exchanges['log'].should_not be_nil
+    log_exchange.name.should == 'test.log'
+    log_exchange.type.should == :topic
+    log_exchange.key.should == 'test.log'
     done
   end
 end
@@ -197,16 +194,6 @@ describe AMQP::Events::AMQPTransport do
     active_subject { described_class.new 'test' }
 
     it_behaves_like 'AMQP Transport'
-
-    it 'tests well' do
-      pending
-      AMQP.logging=true
-      @mq         = MQ.new
-      p @mq.direct("test", nowait: false).type
-      p @mq.fanout("test").type
-      p @mq.topic("test").type
-      done(1) { AMQP.logging=false }
-    end
 
     context 'with list of known exchanges given as a Hash' do
       active_subject { described_class.new 'test', 'system' => {}, 'data' => {}, 'log' => {}, 'log.error' => {} }
