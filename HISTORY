@@ -21,3 +21,7 @@
 == 0.0.5 / 2010-11-01
 
 * AMQPTransport.new specified
+
+== 0.0.6 / 2010-11-03
+
+* AMQPTransport::Exchange as a decorator/proxy for MQ::Exchange

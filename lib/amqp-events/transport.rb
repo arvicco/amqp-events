@@ -41,12 +41,21 @@ module AMQP
     #
     class AMQPTransport < Transport
 
+      # AMQPTransport:: Exchange is a proxy/decorator for MQ::Exchange, exposing some of its
+      # hidden state and adding functionality
       class Exchange
 
-        attr_reader :opts
+        attr_reader :proper, :opts, :mq
 
-        def initialize name, opts
+        def initialize mq, name, opts
+          @mq     = mq
+          @opts   = opts
+          @proper = MQ::Exchange.new mq, opts[:type], name, opts
+        end
 
+        # Routing all unknown method calls to exchange proper
+        def method_missing method, *args
+          @proper.__send__(method, *args)
         end
       end
 
@@ -71,15 +80,16 @@ module AMQP
       # TODO: make sure only EXISTING exchanges are added and none created (for consistency of existing hierarchy)
       #
       def add_exchange name, opts = {}
-        real_name        = @root ? "#{@root}.#{name}" : "#{name}"
-        real_opts        = {type: :topic, passive: true}.merge(symbolize(opts))
+        exchange_name        = @root ? "#{@root}.#{name}" : "#{name}"
+        exchange_opts        = {type: :topic, passive: true}.merge(symbolize(opts))
 
         if @exchanges[name]
-          raise TransportError.new "Unable to add exchange '#{name}' with opts #{real_opts.inspect}" if exchange_declared_with_different_opts? name, real_opts
+          if @exchanges[name].opts != exchange_opts
+            raise TransportError.new "Unable to add exchange '#{name}' with opts #{exchange_opts.inspect}"
+          end
           @exchanges[name]
         else
-          exchange         = @mq.__send__(real_opts[:type], real_name, real_opts)
-          @exchanges[name] = exchange
+          @exchanges[name] = Exchange.new @mq, exchange_name, exchange_opts
         end
       end
 
@@ -92,12 +102,6 @@ module AMQP
         exchanges  = args.last.is_a?(Hash) ? args.pop.to_a : []
         exchanges  += args.map { |name| [name, {}] }
         exchanges.each { |name, opts| add_exchange name, opts }
-      end
-
-      # TODO: remove dependence on MQ::Exchange implementation detail
-      #
-      def exchange_declared_with_different_opts? name, real_opts
-        @exchanges[name] && @exchanges[name].instance_variable_get(:@opts) != real_opts
       end
 
       # Turns both keys and (String) values of hash into Symbols

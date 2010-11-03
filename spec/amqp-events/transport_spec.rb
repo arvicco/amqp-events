@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 # Noop unless AMQP::SpecHelper was included - helps to share examples between evented and non-evented groups
-def done
+def done timeout=nil
 end
 
 # Shorthand for MQ.exchange_type invocation
@@ -29,7 +29,7 @@ shared_examples_for 'AMQP Transport' do
       subject
       @subject.add_exchange 'log.fatal'
       @subject.exchanges.should have_key 'log.fatal'
-      @subject.exchanges['log.fatal'].should be_an MQ::Exchange
+      @subject.exchanges['log.fatal'].name.should == 'test.log.fatal'
       @subject.exchanges['log.fatal'].type.should == :topic
       done
     end
@@ -38,7 +38,7 @@ shared_examples_for 'AMQP Transport' do
       subject
       @subject.add_exchange 'fanout', type: 'fanout'
       @subject.exchanges.should have_key 'fanout'
-      @subject.exchanges['fanout'].should be_an MQ::Exchange
+      @subject.exchanges['fanout'].name.should == 'test.fanout'
       @subject.exchanges['fanout'].type.should == :fanout
       done
     end
@@ -57,10 +57,10 @@ shared_examples_for 'AMQP Transport' do
       expect { @subject.add_exchange 'fanout', type: 'fanout' }.to_not raise_error
 
       @subject.exchanges.should have_key 'fanout'
-      @subject.exchanges['fanout'].should be_an MQ::Exchange
+      @subject.exchanges['fanout'].name.should == 'test.fanout'
       @subject.exchanges['fanout'].type.should == :fanout
       @subject.exchanges.should have_key 'log.fatal'
-      @subject.exchanges['log.fatal'].should be_an MQ::Exchange
+      @subject.exchanges['log.fatal'].name.should == 'test.log.fatal'
       @subject.exchanges['log.fatal'].type.should == :topic
       @subject.exchanges.size.should == @num_exchanges
       done
@@ -82,17 +82,38 @@ shared_examples_for 'AMQP Transport' do
           to raise_error /Unable to add exchange 'log.fatal' with opts {:type=>:topic/
 
       @subject.exchanges.should have_key 'fanout'
-      @subject.exchanges['fanout'].should be_an MQ::Exchange
+      @subject.exchanges['fanout'].name.should == 'test.fanout'
       @subject.exchanges['fanout'].type.should == :fanout
       @subject.exchanges.should have_key 'log.fatal'
-      @subject.exchanges['log.fatal'].should be_an MQ::Exchange
+      @subject.exchanges['log.fatal'].name.should == 'test.log.fatal'
       @subject.exchanges['log.fatal'].type.should == :topic
       @subject.exchanges.size.should == @num_exchanges
       @subject.exchanges.size.should == @num_exchanges
       done(0.1)
     end
 
-    it 'raises error attempting to add undeclared exchange by name and options'
+    it 'raises error attempting to add exchange that does not exist at broker' do
+      pending 'it DOES blow up, but a little bit later - leaving @exchanges in inconsistent state :('
+      # amqp_before
+      subject
+      @num_exchanges = @subject.exchanges.size
+
+      # example
+      expect { @subject.add_exchange 'unknown' }.
+          to raise_error /Unable to add exchange 'unknown' with opts {:type=>:topic/
+      expect { @subject.add_exchange 'unknown', type: :topic, durable: true }.
+          to raise_error /Unable to add exchange 'log.fatal' with opts {:type=>:topic/
+
+      @subject.exchanges.should have_key 'fanout'
+      @subject.exchanges['fanout'].name.should == 'test.fanout'
+      @subject.exchanges['fanout'].type.should == :fanout
+      @subject.exchanges.should have_key 'log.fatal'
+      @subject.exchanges['log.fatal'].name.should == 'test.log.fatal'
+      @subject.exchanges['log.fatal'].type.should == :topic
+      @subject.exchanges.size.should == @num_exchanges
+      @subject.exchanges.size.should == @num_exchanges
+      done(1)
+    end
   end
 
   it 'should create new route when subscribed to'
@@ -112,10 +133,14 @@ shared_examples_for 'AMQP Transport with pre-defined exchanges' do
   end
 
   it 'has log exchange with expected characteristics' do
-    log_exchange = subject.exchanges['log'].should_not be_nil
+    log_exchange = subject.exchanges['log']
+    log_exchange.should_not be_nil
     log_exchange.name.should == 'test.log'
     log_exchange.type.should == :topic
-    log_exchange.key.should == 'test.log'
+    log_exchange.key.should be_nil
+    log_exchange.opts.should == {:type=>:topic, :passive=>true}
+    log_exchange.mq.should be_an MQ
+    log_exchange.proper.should be_an MQ::Exchange
     done
   end
 end
@@ -170,6 +195,30 @@ describe AMQP::Events::AMQPTransport do
         to raise_error /Unable to create AMQPTransport without active AMQP connection/
   end
 
+  context 'with SpecHelper' do
+    include AMQP::SpecHelper
+
+    it 'raises error attempting to add exchange that does not exist at broker' do
+      expect {
+        amqp do
+      # amqp_before
+      subject
+      @num_exchanges = @subject.exchanges.size
+
+      # example
+      expect { @subject.add_exchange 'unknown' }.
+          to_not raise_error /Unable to add exchange 'unknown' with opts {:type=>:topic/
+#      expect { @subject.add_exchange 'unknown', type: :topic, durable: true }.
+#          to raise_error /Unable to add exchange 'log.fatal' with opts {:type=>:topic/
+
+      done(0.5)
+      end
+      }.   to raise_error #/Unable to add exchange 'unknown' with opts {:type=>:topic/
+
+    end
+
+  end
+
   context 'inside active AMQP event loop' do
     include AMQP::Spec
 
@@ -216,6 +265,17 @@ describe AMQP::Events::AMQPTransport do
       it_behaves_like 'AMQP Transport with pre-defined exchanges'
     end
 
+    context 'testing AMQP internals' do
+
+      it 'fails, raising error if undeclared exchange requested with passive: true', failing: true do
+        pending 'it demonstrated that error is raised, even though invalid MQ::Exchange is blithely created'
+        #AMQP.logging = true
+        p AMQP.conn.connected?
+        @mq          = MQ.new
+        p @mq.topic "undeclared", passive: true, nowait: false
+        done #(0.1) { AMQP.logging = false }
+      end
+    end
   end
 end
 
